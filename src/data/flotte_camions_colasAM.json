@@ -1,0 +1,32 @@
+[
+  {
+    "id": "camion-001",
+    "immatriculation": "AA-123-BB",
+    "type_id": "benne-17t",
+    "agence": "Carros",
+    "proprietaire": "Colas",
+    "priorite": 1,
+    "disponible": true,
+    "notes": ""
+  },
+  {
+    "id": "camion-002",
+    "immatriculation": "CC-456-DD",
+    "type_id": "benne-9t",
+    "agence": "Cannes",
+    "proprietaire": "Colas",
+    "priorite": 1,
+    "disponible": true,
+    "notes": ""
+  },
+  {
+    "id": "locatier-001",
+    "immatriculation": null,
+    "type_id": "benne-17t",
+    "agence": null,
+    "proprietaire": "Locatier",
+    "priorite": 2,
+    "disponible": null,
+    "notes": "À commander selon besoin"
+  }
+]

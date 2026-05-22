@@ -1,0 +1,35 @@
+[
+  {
+    "id": "'4x2'",
+    "label": "4x2",
+    "PV": null,
+    "PTAC": null ,
+    "tonnage_utile": 9,
+    "hauteur_m": null,
+    "temps_chargement_min": null,
+    "temps_dechargement_min": null,
+    "vitesse_moyenne_kmh": null
+  },
+  {
+    "id": "8x4",
+    "label": "8x4",
+    "PV": null,
+    "PTAC": null ,
+    "tonnage_utile": 17,
+    "hauteur_m": null,
+    "temps_chargement_min": null,
+    "temps_dechargement_min":null,
+    "vitesse_moyenne_kmh": null
+  },
+  {
+    "id": "semi-44t",
+    "label": "Semi-remorque (44t)",
+    "PV": null,
+    "PTAC": null ,
+    "tonnage_utile": 29,
+    "hauteur_m": null,
+    "temps_chargement_min": null,
+    "temps_dechargement_min": null,
+    "vitesse_moyenne_kmh":null
+  }
+]

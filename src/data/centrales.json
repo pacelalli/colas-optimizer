@@ -1,0 +1,72 @@
+[
+  {
+    "id": "scerm",
+    "nom": "SCERM",
+    "localisation": "Carros",
+    "adresse": "Zone Industrielle Carros, 06510 Carros",
+    "lat": 43.79341752457463,
+    "lng": 7.199321900683945,
+    "type": "enrobes_chaud",
+    "fraisat": true,
+    "agregats_enrobes": true,
+    "croutes_enrobe": true,
+    "propriete": "Colas 100%",
+    "notes": ""
+  },
+  {
+    "id": "seca",
+    "nom": "SECA",
+    "localisation": "Nice Est",
+    "adresse": "",
+    "lat": 43.7335066659438,
+    "lng": 7.3000760627566486,
+    "type": "enrobes_chaud",
+    "fraisat": null,
+    "agregats_enrobes": null,
+    "croutes_enrobe": null,
+    "propriete": "Colas 50% / Eiffage 50%",
+    "notes": ""
+  },
+  {
+    "id": "same",
+    "nom": "SAME",
+    "localisation": "Nice",
+    "adresse": "",
+    "lat": 43.6870408041973,
+    "lng": 7.194072195888311,
+    "type": null,
+    "fraisat": null,
+    "agregats_enrobes": null,
+    "croutes_enrobe": null,
+    "propriete": "",
+    "notes": ""
+  },
+  {
+    "id": "someca",
+    "nom": "SOMECA",
+    "localisation": "Callas",
+    "adresse": "Callas, 83830 Fréjus",
+    "lat": 43.53882282594299,
+    "lng": 6.560561467041949,
+    "type": null,
+    "fraisat": null,
+    "agregats_enrobes": null,
+    "croutes_enrobe": null,
+    "propriete": "",
+    "notes": ""
+  },
+  {
+    "id": "ceb",
+    "nom": "CEB",
+    "localisation": "Boulouris",
+    "adresse": "Boulouris, 83700 Saint-Raphaël",
+    "lat": 43.43334136765973,
+    "lng": 6.821451587098211,
+    "type": null,
+    "fraisat": null,
+    "agregats_enrobes": null,
+    "croutes_enrobe": null,
+    "propriete": "",
+    "notes": ""
+  }
+]
