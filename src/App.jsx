@@ -1,6 +1,7 @@
 import { useState } from "react";
 import "./App.css";
 import Carte from "./components/Carte";
+import FormulaireChantier from "./components/FormulaireChantier";
 
 function App() {
   const [onglet, setOnglet] = useState("accueil");
@@ -46,7 +47,7 @@ function App() {
             </button>
           </div>
         )}
-        {onglet === "saisie" && <p>Formulaire de saisie — à venir</p>}
+        {onglet === "saisie" && <FormulaireChantier />}
         {onglet === "planning" && <p>Planning Gantt — à venir</p>}
         {onglet === "carte" && <Carte />}
       </main>
