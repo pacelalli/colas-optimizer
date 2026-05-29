@@ -57,15 +57,6 @@ function FormulaireChantier({ onAjoutChantier }) {
     }
   };
 
-  const calculerCamions = () => {
-    const tonnage = parseFloat(form.tonnage);
-    const type = typesCamions.find((t) => t.id === form.typeCamion);
-    const capacite = type.tonnage;
-    const nbCamions = Math.ceil(tonnage / capacite);
-    const nbRotations = Math.ceil(tonnage / capacite);
-    return { nbCamions, nbRotations, capacite, labelType: type.label };
-  };
-
   const handleSubmit = () => {
   if (!form.conducteur || !form.date || !form.nomChantier || !form.tonnage) {
     alert("Merci de remplir tous les champs obligatoires (*)");
@@ -75,8 +66,7 @@ function FormulaireChantier({ onAjoutChantier }) {
     alert("Merci de sélectionner une centrale (centrale imposée)");
     return;
   }
-  const calc = calculerCamions();
-  const chantier = { ...form, id: Date.now(), ...calc };
+  const chantier = { ...form, id: Date.now() };
   setResultat(chantier);
   if (onAjoutChantier) onAjoutChantier(chantier);
 };
@@ -245,7 +235,8 @@ function FormulaireChantier({ onAjoutChantier }) {
         </div>
         {form.tonnage && (
           <div className="info-calcul">
-            🚛 Estimation : <strong>{Math.ceil(parseFloat(form.tonnage) / typesCamions.find(t => t.id === form.typeCamion).tonnage)} camion(s)</strong> nécessaire(s)
+            🚛 Rotations nécessaires : <strong>{Math.ceil(parseFloat(form.tonnage) / typesCamions.find(t => t.id === form.typeCamion).tonnage)}</strong> au total
+            — l'algorithme calculera le nombre de camions optimal
           </div>
         )}
       </div>

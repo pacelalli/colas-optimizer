@@ -94,8 +94,9 @@ function heureEnMinutes(heure) {
 }
 
 function minutesEnHeure(minutes) {
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
+  const totalMin = ((minutes % (24 * 60)) + 24 * 60) % (24 * 60);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
   return `${String(h).padStart(2, "0")}h${String(m).padStart(2, "0")}`;
 }
 
@@ -111,42 +112,91 @@ export function calculerRotations(chantier) {
   if (!type) return null;
 
   const tonnage = parseFloat(chantier.tonnage);
-  const capacite = type.tonnage_utile / 1000; // kg → tonnes
+  const capacite = type.tonnage_utile; // déjà en tonnes
+  const nuit = chantier.chantierNuit ?? false;
+
   const centraleId = chantier.centraleImposee
-  ? chantier.centrale
-  : chantier.centrale || suggererCentrale(chantier.lat, chantier.lng);
-const nuit = isNuit(chantier.heureDebut);
-const tempsTrajet = getTempsTrajet(centraleId, chantier.zoneId, nuit);
+    ? chantier.centrale
+    : chantier.centrale || suggererCentrale(chantier.lat, chantier.lng);
+
+  const tempsTrajetBase = getTempsTrajet(centraleId, chantier.zoneId, nuit);
   const coeff = type.coefficient_trajet ?? 1.0;
-  const tempsTrajetCamion = Math.round(tempsTrajet * coeff);
+  const tempsTrajet = Math.round(tempsTrajetBase * coeff);
 
+  // heureDebut = arrivée sur chantier
+  // donc départ centrale = heureDebut - trajet - chargement - bâchage
+  const heureArriveeChantier = heureEnMinutes(chantier.heureDebut) ?? 7 * 60;
+  const heureDepartCentrale = heureArriveeChantier - tempsTrajet - type.temps_chargement_enrobe - type.temps_bachage_enrobe;
+  let heureFinMin = heureEnMinutes(chantier.heureFin) ?? 17 * 60;
+
+  // Gestion passage minuit
+  if (heureFinMin < heureArriveeChantier) {
+    heureFinMin += 24 * 60;
+  }
+
+  // Temps disponible brut depuis départ centrale
+  let tempsDisponible = heureFinMin - heureDepartCentrale;
+
+  // Pauses
+  const pauseChauffeur = 45;
+  let pauseRepas = 0;
+  if (!nuit) {
+    const debut12h = 12 * 60;
+    const fin13h = 13 * 60;
+    if (heureArriveeChantier < fin13h && heureFinMin > debut12h) {
+      pauseRepas = 60;
+    }
+  }
+  tempsDisponible = tempsDisponible - pauseChauffeur - pauseRepas;
+
+  // Temps de cycle complet
   const tempsCycle =
-    tempsTrajetCamion + // centrale → chantier
     type.temps_chargement_enrobe +
-    type["temps-bachage_enrobe"] +
+    type.temps_bachage_enrobe +
+    tempsTrajet +
     type.temps_dechargement_enrobe +
-    tempsTrajetCamion; // chantier → centrale
+    tempsTrajet;
 
-  const heureDebutMin = heureEnMinutes(chantier.heureDebut) ?? 7 * 60;
-  const heureFinMin = heureEnMinutes(chantier.heureFin) ?? 17 * 60;
-  const dureeChantier = heureFinMin - heureDebutMin;
+  // Rotations par camion
+  const rotationsParCamion = Math.max(1, Math.floor(tempsDisponible / tempsCycle));
 
-  const rotationsParCamion = Math.floor(dureeChantier / tempsCycle);
+  // Tonnage livré par camion
   const tonnageParCamion = rotationsParCamion * capacite;
-  const nbCamions = Math.ceil(tonnage / tonnageParCamion);
+
+  // Camions nécessaires pour le tonnage
+  const nbCamionsTonnage = Math.ceil(tonnage / tonnageParCamion);
+
+  // Camions nécessaires pour flux continu (finisseur)
+  const intervalleArrivee = type.temps_dechargement_enrobe;
+  const nbCamionsFluxContinu = Math.ceil(tempsCycle / intervalleArrivee);
+
+  // On prend le max des deux
+  const nbCamions = Math.max(nbCamionsTonnage, nbCamionsFluxContinu);
+
+  console.log("tempsDisponible:", tempsDisponible);
+  console.log("tempsCycle:", tempsCycle);
+  console.log("rotationsParCamion:", rotationsParCamion);
+  console.log("tonnageParCamion:", tonnageParCamion);
 
   return {
     chantierNom: chantier.nomChantier,
-    centrale: chantier.centrale,
+    centraleId,
     tonnage,
     capacite,
     typeCamion: type.label,
-    tempsTrajetCamion,
+    tempsTrajet,
     tempsCycle,
     rotationsParCamion,
     tonnageParCamion,
     nbCamions,
-    heureDebutMin,
+    nbCamionsTonnage,
+    nbCamionsFluxContinu,
+    intervalleArrivee,
+    pauseRepas,
+    pauseChauffeur,
+    tempsDisponible,
+    heureDepartCentrale,
+    heureArriveeChantier,
     heureFinMin,
     nuit,
   };
@@ -154,39 +204,58 @@ const tempsTrajet = getTempsTrajet(centraleId, chantier.zoneId, nuit);
 
 // ─── GÉNÉRATION DU PLANNING D'UN CAMION ─────────────────────────────────────
 
-export function genererPlanningCamion(camion, chantier, calc) {
+export function genererPlanningCamion(camion, chantier, calc, decalage = 0) {
   const rotations = [];
-  let cursor = calc.heureDebutMin;
   const type = getTypeCamion(chantier.typeCamion);
 
+  // Décalage entre camions pour flux continu
+  // Camion 1 part à heureDepartCentrale
+  // Camion 2 part à heureDepartCentrale + intervalleArrivee
+  // Camion 3 part à heureDepartCentrale + 2 × intervalleArrivee
+  let cursor = calc.heureDepartCentrale + decalage * calc.intervalleArrivee;
+
   for (let i = 0; i < calc.rotationsParCamion; i++) {
-    const depart = cursor;
-    const arriveeChantier = depart + calc.tempsTrajetCamion;
-    const finChargement = depart + type.temps_chargement_enrobe + type["temps-bachage_enrobe"];
+    const departCentrale = cursor;
+    const finChargement = departCentrale + type.temps_chargement_enrobe + type.temps_bachage_enrobe;
+    const arriveeChantier = finChargement + calc.tempsTrajet;
     const finDechargement = arriveeChantier + type.temps_dechargement_enrobe;
-    const retourCentrale = finDechargement + calc.tempsTrajetCamion;
+    const retourCentrale = finDechargement + calc.tempsTrajet;
+
+    // Vérifier pause repas (12h-13h)
+    let cursorApresRotation = retourCentrale;
+    if (!calc.nuit) {
+      const debut12h = 12 * 60;
+      const fin13h = 13 * 60;
+      if (retourCentrale > debut12h && cursor < fin13h) {
+        cursorApresRotation = Math.max(retourCentrale, fin13h);
+      }
+    }
 
     rotations.push({
       rotation: i + 1,
-      depart_centrale: minutesEnHeure(depart),
+      depart_centrale: minutesEnHeure(departCentrale),
+      fin_chargement: minutesEnHeure(finChargement),
       arrivee_chantier: minutesEnHeure(arriveeChantier),
       fin_dechargement: minutesEnHeure(finDechargement),
       retour_centrale: minutesEnHeure(retourCentrale),
     });
 
-    cursor = retourCentrale;
+    cursor = cursorApresRotation;
+
+    // Arrêt si on dépasse heureFin
+    if (cursor >= calc.heureFinMin) break;
   }
 
   return {
     camionId: camion.id,
-    immatriculation: camion.immatriculation,
-    type: camion.type_vehicule,
+    immatriculation: camion.immatriculation ?? "Locatier",
+    type: camion.type_vehicule ?? chantier.typeCamion,
     proprietaire: camion.proprietaire,
     chantier: chantier.nomChantier,
-    centrale: chantier.centrale,
+    centraleId: calc.centraleId,
     rotations,
-    libreA: minutesEnHeure(cursor),
-    libreAMin: cursor,
+    libreA: minutesEnHeure(calc.heureDepartCentrale + calc.rotationsParCamion * calc.tempsCycle),
+    libreAMin: calc.heureDepartCentrale + calc.rotationsParCamion * calc.tempsCycle,
   };
 }
 
@@ -211,48 +280,46 @@ export function optimiser(chantiers) {
 
   let locatiersNecessaires = 0;
 
+  console.log("Chantiers reçus:", chantiers);
+  console.log("Sorted:", sorted);
+
   for (const chantier of sorted) {
     const calc = calculerRotations(chantier);
+    console.log("CALC result:", calc);
     if (!calc) continue;
 
-    let camionsAffecter = calc.nbCamions;
+    let camionsAAffecter = calc.nbCamions;
+    let decalage = 0;
+
+    console.log("Chantier typeCamion:", chantier.typeCamion);
+    console.log("Camions dispos:", camionsDispos.map(c => ({ id: c.id, type_id: c.type_id, disponible: c.disponible })));
+    console.log("CALC nbCamions:", calc?.nbCamions);
 
     for (const camion of camionsDispos) {
-      if (camionsAffecter <= 0) break;
-
-      // Vérifier compatibilité type camion
+      if (camionsAAffecter <= 0) break;
       if (camion.type_id !== chantier.typeCamion) continue;
 
-      // Vérifier disponibilité horaire
       const libreA = camionsOccupes[camion.id] ?? 0;
-      if (libreA > calc.heureDebutMin + 30) continue; // tolérance 30 min
+      if (libreA > calc.heureDepartCentrale + 30) continue;
 
-      // Affecter le camion
-      const planning = genererPlanningCamion(camion, chantier, calc);
+      const planning = genererPlanningCamion(camion, chantier, calc, decalage);
       planningsFinal.push(planning);
       camionsOccupes[camion.id] = planning.libreAMin;
-      camionsAffecter--;
+      camionsAAffecter--;
+      decalage++;
     }
 
-    // Si pas assez de camions Colas → locatiers
-    if (camionsAffecter > 0) {
-      locatiersNecessaires += camionsAffecter;
-      for (let i = 0; i < camionsAffecter; i++) {
-        planningsFinal.push({
-          camionId: `locatier-${Date.now()}-${i}`,
-          immatriculation: "À commander",
-          type: chantier.typeCamion,
-          proprietaire: "Locatier",
-          chantier: chantier.nomChantier,
-          centrale: chantier.centrale,
-          rotations: genererPlanningCamion(
-            { id: `loc-${i}`, immatriculation: "Locatier", type_vehicule: chantier.typeCamion, proprietaire: "Locatier" },
-            chantier,
-            calc
-          ).rotations,
-          libreA: null,
-          libreAMin: null,
-        });
+    if (camionsAAffecter > 0) {
+      locatiersNecessaires += camionsAAffecter;
+      for (let i = 0; i < camionsAAffecter; i++) {
+        const planning = genererPlanningCamion(
+          { id: `loc-${i}`, immatriculation: null, type_vehicule: chantier.typeCamion, proprietaire: "Locatier" },
+          chantier,
+          calc,
+          decalage
+        );
+        planningsFinal.push(planning);
+        decalage++;
       }
     }
   }
