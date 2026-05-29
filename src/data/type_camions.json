@@ -1,24 +1,26 @@
 [
   {
     "id": "'4x2'",
-    "label": "4x2",
+    "label": "4x2 (9t)",
     "PV": 9500 ,
     "PTAC": 19000 , 
     "tonnage_utile": 9000 ,
     "hauteur_m": null,
-    "temps_chargement_min_enrobé": 15,
-    "temps_dechargement_min_enrobé": 20, 
+    "temps_chargement_enrobé": 4,
+    "temps-bachage_enrobé": 5,
+    "temps_dechargement_enrobé": 20, 
     "vitesse_moyenne_kmh": null
   },
   {
     "id": "8x4",
-    "label": "8x4",
+    "label": "8x4 (17t)",
     "PV": 16000 , 
     "PTAC": 32000 , 
     "tonnage_utile": 17000 , 
     "hauteur_m": null,
-    "temps_chargement_min_enrobé": 20,
-    "temps_dechargement_min_enrobé":30,
+    "temps_chargement_enrobé": 6,
+    "temps-bachage_enrobé": 5,
+    "temps_dechargement_enrobé":30,
     "vitesse_moyenne_kmh": null
   },
   {
@@ -28,8 +30,9 @@
     "PTAC": null ,
     "tonnage_utile": 29,
     "hauteur_m": null,
-    "temps_chargement_min_enrobé": 25,
-    "temps_dechargement_min_enrobé": 40,
+    "temps_chargement_enrobé": 10,
+    "temps-bachage_enrobé": 2,
+    "temps_dechargement_enrobé": 40,
     "vitesse_moyenne_kmh":null
   }
 ]
