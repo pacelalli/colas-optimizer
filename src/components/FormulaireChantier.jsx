@@ -1,5 +1,6 @@
 import { useState } from "react";
 import centrales from "../data/centrales.json";
+import { trouverZone, suggererCentrale } from "../utils/optimisation";
 
 const ctx = [
   "ANTONIN Baptiste",
@@ -23,8 +24,13 @@ function FormulaireChantier({ onAjoutChantier }) {
   const [form, setForm] = useState({
     conducteur: "",
     date: "",
+    chantierNuit: false,
     nomChantier: "",
     adresseChantier: "",
+    coordonnees: "",
+    lat: "",
+    lng: "",
+    zoneId: "",
     centrale: "",
     centraleImposee: false,
     typeEnrobe: "",
@@ -35,9 +41,20 @@ function FormulaireChantier({ onAjoutChantier }) {
   });
 
   const [resultat, setResultat] = useState(null);
+  const [zoneDetectee, setZoneDetectee] = useState(null);
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const newForm = { ...form, [e.target.name]: e.target.value };
+    setForm(newForm);
+
+    if (e.target.name === "coordonnees") {
+      const parts = e.target.value.split(",").map((v) => parseFloat(v.trim()));
+      if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+        const zone = trouverZone(parts[0], parts[1]);
+        setZoneDetectee(zone);
+        setForm({ ...newForm, lat: parts[0], lng: parts[1], zoneId: zone?.zoneId });
+      }
+    }
   };
 
   const calculerCamions = () => {
@@ -50,15 +67,19 @@ function FormulaireChantier({ onAjoutChantier }) {
   };
 
   const handleSubmit = () => {
-    if (!form.conducteur || !form.date || !form.nomChantier || !form.centrale || !form.tonnage) {
-      alert("Merci de remplir tous les champs obligatoires (*)");
-      return;
-    }
-    const calc = calculerCamions();
-    const chantier = { ...form, id: Date.now(), ...calc };
-    setResultat(chantier);
-    if (onAjoutChantier) onAjoutChantier(chantier);
-  };
+  if (!form.conducteur || !form.date || !form.nomChantier || !form.tonnage) {
+    alert("Merci de remplir tous les champs obligatoires (*)");
+    return;
+  }
+  if (form.centraleImposee && !form.centrale) {
+    alert("Merci de sélectionner une centrale (centrale imposée)");
+    return;
+  }
+  const calc = calculerCamions();
+  const chantier = { ...form, id: Date.now(), ...calc };
+  setResultat(chantier);
+  if (onAjoutChantier) onAjoutChantier(chantier);
+};
 
   const centraleTrouvee = centrales.find((c) => c.id === form.centrale);
 
@@ -81,17 +102,64 @@ function FormulaireChantier({ onAjoutChantier }) {
           <label>Date du besoin *</label>
           <input type="date" name="date" value={form.date} onChange={handleChange} />
         </div>
+        <div className="form-row">
+          <label>Type de chantier</label>
+          <div className="toggle-group">
+            <button
+              type="button"
+              className={!form.chantierNuit ? "toggle-btn actif" : "toggle-btn"}
+              onClick={() => setForm({ ...form, chantierNuit: false })}
+            >
+              ☀️ Chantier de jour
+            </button>
+            <button
+              type="button"
+              className={form.chantierNuit ? "toggle-btn actif" : "toggle-btn"}
+              onClick={() => setForm({ ...form, chantierNuit: true })}
+            >
+              🌙 Chantier de nuit
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="form-section">
         <h3>Chantier</h3>
         <div className="form-row">
           <label>Nom du chantier *</label>
-          <input type="text" name="nomChantier" value={form.nomChantier} onChange={handleChange} placeholder="Ex: RD6098 - Villeneuve-Loubet" />
+          <input
+            type="text"
+            name="nomChantier"
+            value={form.nomChantier}
+            onChange={handleChange}
+            placeholder="Ex: RD6098 - Villeneuve-Loubet"
+          />
         </div>
         <div className="form-row">
           <label>Adresse du chantier</label>
-          <input type="text" name="adresseChantier" value={form.adresseChantier} onChange={handleChange} placeholder="Ex: RD6098, 06270 Villeneuve-Loubet" />
+          <input
+            type="text"
+            name="adresseChantier"
+            value={form.adresseChantier}
+            onChange={handleChange}
+            placeholder="Ex: RD6098, 06270 Villeneuve-Loubet"
+          />
+        </div>
+        <div className="form-row">
+          <label>Coordonnées GPS (copier-coller depuis Google Maps)</label>
+          <input
+            type="text"
+            name="coordonnees"
+            value={form.coordonnees}
+            onChange={handleChange}
+            placeholder="Ex: 43.6580, 7.1220"
+          />
+          {zoneDetectee && (
+            <div className="info-centrale">
+              📍 Zone détectée : <strong>{zoneDetectee.commune}</strong> — {zoneDetectee.secteur}
+              <span style={{ float: "right", opacity: 0.6 }}>à {zoneDetectee.distanceKm} km</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -129,6 +197,13 @@ function FormulaireChantier({ onAjoutChantier }) {
             : <p className="info-centrale">✅ L'algorithme pourra optimiser la centrale si nécessaire</p>
           }
         </div>
+        {!form.centraleImposee && form.lat && form.lng && (
+          <div className="info-centrale">
+            💡 Centrale suggérée : <strong>
+              {centrales.find(c => c.id === suggererCentrale(parseFloat(form.lat), parseFloat(form.lng)))?.nom}
+            </strong>
+          </div>
+        )}
         {centraleTrouvee && (
           <div className="info-centrale">
             📍 {centraleTrouvee.adresse || centraleTrouvee.localisation} &nbsp;|&nbsp;

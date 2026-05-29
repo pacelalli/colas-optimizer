@@ -208,5 +208,11 @@
     color: var(--colas-noir);
     font-weight: 600;
   }
+
+  .form-row-double {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
 }
 

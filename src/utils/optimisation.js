@@ -2,6 +2,79 @@ import distancesJour from "../data/distances_jour.json";
 import distancesNuit from "../data/distances_nuit.json";
 import typesCamions from "../data/type_camions.json";
 import flotteCamions from "../data/flotte_camions_colasAM.json";
+import zonesAM from "../data/zones_am.json";
+
+// ─── DÉTECTION AUTOMATIQUE DE ZONE ──────────────────────────────────────────
+
+function haversine(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+export function trouverZone(lat, lng) {
+  if (!lat || !lng) return null;
+
+  let meilleureCommune = null;
+  let meilleureSecteur = null;
+  let distanceMin = Infinity;
+
+  for (const secteur of zonesAM.secteurs) {
+    for (const commune of secteur.communes) {
+      if (!commune.lat || !commune.lng) continue;
+      const dist = haversine(lat, lng, commune.lat, commune.lng);
+      if (dist < distanceMin) {
+        distanceMin = dist;
+        meilleureCommune = commune;
+        meilleureSecteur = secteur;
+      }
+    }
+  }
+
+  return {
+    commune: meilleureCommune?.nom,
+    secteur: meilleureSecteur?.label,
+    zoneId: meilleureCommune?.nom
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[\s-]/g, "_"),
+    distanceKm: Math.round(distanceMin * 10) / 10,
+  };
+}
+
+export function suggererCentrale(lat, lng) {
+  if (!lat || !lng) return "scerm";
+
+  const centralesPrioritaires = [
+    { id: "scerm", lat: 43.79341752457463, lng: 7.199321900683945, priorite: 1 },
+    { id: "seca", lat: 43.7335066659438, lng: 7.3000760627566486, priorite: 2 },
+    { id: "same", lat: 43.6870408041973, lng: 7.194072195888311, priorite: 3 },
+    { id: "someca", lat: 43.53882282594299, lng: 6.560561467041949, priorite: 4 },
+    { id: "ceb", lat: 43.43334136765973, lng: 6.821451587098211, priorite: 5 },
+  ];
+
+  let meilleure = null;
+  let scoreMin = Infinity;
+
+  for (const centrale of centralesPrioritaires) {
+    const dist = haversine(lat, lng, centrale.lat, centrale.lng);
+    const score = dist * centrale.priorite;
+    if (score < scoreMin) {
+      scoreMin = score;
+      meilleure = centrale;
+    }
+  }
+
+  return meilleure?.id ?? "scerm";
+}
 
 // ─── UTILITAIRES ────────────────────────────────────────────────────────────
 
@@ -39,8 +112,11 @@ export function calculerRotations(chantier) {
 
   const tonnage = parseFloat(chantier.tonnage);
   const capacite = type.tonnage_utile / 1000; // kg → tonnes
-  const nuit = isNuit(chantier.heureDebut);
-  const tempsTrajet = getTempsTrajet(chantier.centrale, chantier.zoneId, nuit);
+  const centraleId = chantier.centraleImposee
+  ? chantier.centrale
+  : chantier.centrale || suggererCentrale(chantier.lat, chantier.lng);
+const nuit = isNuit(chantier.heureDebut);
+const tempsTrajet = getTempsTrajet(centraleId, chantier.zoneId, nuit);
   const coeff = type.coefficient_trajet ?? 1.0;
   const tempsTrajetCamion = Math.round(tempsTrajet * coeff);
 

@@ -39,3 +39,25 @@
 - Fraisat accepté : SECA, SAME, SOMECA, CEB ?
 - Système GPS télématique existant ?
 - Locatiers habituels ?
+
+## 29/05/26
+
+## Fichiers créés
+
+- src/data/centrales.json ✅
+- src/data/type_camions.json ✅
+- src/data/flotte_camions_colasAM.json ✅
+- src/data/zones_am.json ✅
+- src/data/distances_jour.json ✅ (à compléter avec valeurs terrain)
+- src/data/distances_nuit.json ✅ (à compléter avec valeurs terrain)
+- src/components/Carte.jsx ✅
+- src/components/FormulaireChantier.jsx ✅
+- src/utils/optimisation.js ✅
+- src/App.jsx ✅
+
+## Prochaine étape
+
+- Corriger erreur distances_jour.json (nom de fichier à vérifier)
+- Tester l'algorithme avec des chantiers réels
+- Affichage pins oranges chantiers sur la carte
+- Planning Gantt

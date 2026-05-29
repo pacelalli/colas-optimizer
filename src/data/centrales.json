@@ -8,16 +8,15 @@
     "lng": 7.199321900683945,
     "type": "enrobes_chaud",
     "fraisat": true,
-    "agregats_enrobes": true,
     "croutes_enrobe": true,
     "propriete": "Colas 100%",
-    "notes": ""
+    "notes": "OK Validé"
   },
   {
     "id": "seca",
     "nom": "SECA",
-    "localisation": "Nice Est",
-    "adresse": "",
+    "localisation": "Nice-Est",
+    "adresse": "52 Bd. Riba Roussa, 06340 La Trinité",
     "lat": 43.7335066659438,
     "lng": 7.3000760627566486,
     "type": "enrobes_chaud",
