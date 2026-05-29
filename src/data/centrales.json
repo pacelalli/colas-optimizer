@@ -9,7 +9,8 @@
     "type": "enrobes_chaud",
     "fraisat": true,
     "croutes_enrobe": true,
-    "propriete": "Colas 100%",
+    "propriete": "COLAS 100%",
+    "priorite": 1,
     "notes": "OK Validé"
   },
   {
@@ -20,52 +21,52 @@
     "lat": 43.7335066659438,
     "lng": 7.3000760627566486,
     "type": "enrobes_chaud",
-    "fraisat": null,
-    "agregats_enrobes": null,
-    "croutes_enrobe": null,
-    "propriete": "Colas 50% / Eiffage 50%",
-    "notes": ""
+    "fraisat": false,
+    "croutes_enrobe": false,
+    "propriete": "COLAS 50% / EIFFAGE 50%",
+    "priorite":2,
+    "notes": "OK Validé"
   },
   {
     "id": "same",
     "nom": "SAME",
     "localisation": "Nice",
-    "adresse": "",
+    "adresse": "217 Bd. Jean Luciano",
     "lat": 43.6870408041973,
     "lng": 7.194072195888311,
-    "type": null,
-    "fraisat": null,
-    "agregats_enrobes": null,
-    "croutes_enrobe": null,
-    "propriete": "",
-    "notes": ""
+    "type": "plateforme_recyclage",
+    "fraisat": true,
+    "croutes_enrobe": true,
+    "propriete": "Privé",
+    "priorite": null,
+    "notes": "OK Validé"
   },
   {
     "id": "someca",
     "nom": "SOMECA",
     "localisation": "Callas",
-    "adresse": "Callas, 83830 Fréjus",
+    "adresse": "CD 54, 83830 Callas",
     "lat": 43.53882282594299,
     "lng": 6.560561467041949,
-    "type": null,
-    "fraisat": null,
-    "agregats_enrobes": null,
-    "croutes_enrobe": null,
-    "propriete": "",
-    "notes": ""
+    "type": "enrobes_chaud",
+    "fraisat": true,
+    "croutes_enrobe": true,
+    "propriete": "SOTEM/COLAS/CEMEX",
+    "priorite":3,
+    "notes": "OK Validé"
   },
   {
     "id": "ceb",
     "nom": "CEB",
     "localisation": "Boulouris",
-    "adresse": "Boulouris, 83700 Saint-Raphaël",
+    "adresse": "Bd. Pierre Delli-Zotti, 83700 Saint-Raphaël",
     "lat": 43.43334136765973,
     "lng": 6.821451587098211,
     "type": null,
-    "fraisat": null,
-    "agregats_enrobes": null,
-    "croutes_enrobe": null,
-    "propriete": "",
-    "notes": ""
+    "fraisat": true,
+    "croutes_enrobe": true,
+    "propriete": "COLAS 100%",
+    "priorite": 2,
+    "notes": "OK Validé"
   }
 ]
