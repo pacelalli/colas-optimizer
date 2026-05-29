@@ -26,6 +26,7 @@ function FormulaireChantier({ onAjoutChantier }) {
     nomChantier: "",
     adresseChantier: "",
     centrale: "",
+    centraleImposee: false,
     typeEnrobe: "",
     tonnage: "",
     heureDebut: "",
@@ -104,6 +105,29 @@ function FormulaireChantier({ onAjoutChantier }) {
               <option key={c.id} value={c.id}>{c.nom} — {c.localisation}</option>
             ))}
           </select>
+        </div>
+        <div className="form-row">
+          <label>Contrainte centrale</label>
+          <div className="toggle-group">
+            <button
+              type="button"
+              className={form.centraleImposee ? "toggle-btn actif" : "toggle-btn"}
+              onClick={() => setForm({ ...form, centraleImposee: true })}
+            >
+              🔒 Centrale imposée
+            </button>
+            <button
+              type="button"
+              className={!form.centraleImposee ? "toggle-btn actif" : "toggle-btn"}
+              onClick={() => setForm({ ...form, centraleImposee: false })}
+            >
+              💡 Centrale suggérée
+            </button>
+          </div>
+          {form.centraleImposee
+            ? <p className="info-centrale">⚠️ L'algorithme respectera cette centrale (formule spécifique)</p>
+            : <p className="info-centrale">✅ L'algorithme pourra optimiser la centrale si nécessaire</p>
+          }
         </div>
         {centraleTrouvee && (
           <div className="info-centrale">

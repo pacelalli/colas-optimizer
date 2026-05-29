@@ -181,4 +181,32 @@
     right: 0;
     border-right-color: var(--border);
   }
+
+  .toggle-group {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .toggle-btn {
+    flex: 1;
+    padding: 0.6rem 1rem;
+    border: 1px solid #ddd;
+    border-radius: 2px;
+    background: white;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-family: "Barlow", sans-serif;
+    font-weight: 500;
+    transition: all 0.2s;
+    color: var(--colas-gris);
+  }
+
+  .toggle-btn.actif {
+    background: var(--colas-jaune);
+    border-color: var(--colas-jaune);
+    color: var(--colas-noir);
+    font-weight: 600;
+  }
 }
+
