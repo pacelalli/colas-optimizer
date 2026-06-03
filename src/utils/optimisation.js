@@ -154,7 +154,7 @@ export function calculerRotations(chantier) {
     type.temps_chargement_enrobe +
     type.temps_bachage_enrobe +
     tempsTrajet +
-    type.temps_dechargement_enrobe +
+    type.temps_sur_chantier +
     tempsTrajet;
 
   // Rotations par camion
@@ -167,7 +167,7 @@ export function calculerRotations(chantier) {
   const nbCamionsTonnage = Math.ceil(tonnage / tonnageParCamion);
 
   // Camions nécessaires pour flux continu (finisseur)
-  const intervalleArrivee = type.temps_dechargement_enrobe;
+  const intervalleArrivee = type.temps_sur_chantier;
   const nbCamionsFluxContinu = Math.ceil(tempsCycle / intervalleArrivee);
 
   // On prend le max des deux
@@ -218,7 +218,7 @@ export function genererPlanningCamion(camion, chantier, calc, decalage = 0) {
     const departCentrale = cursor;
     const finChargement = departCentrale + type.temps_chargement_enrobe + type.temps_bachage_enrobe;
     const arriveeChantier = finChargement + calc.tempsTrajet;
-    const finDechargement = arriveeChantier + type.temps_dechargement_enrobe;
+    const finDechargement = arriveeChantier + type.temps_sur_chantier;
     const retourCentrale = finDechargement + calc.tempsTrajet;
 
     // Vérifier pause repas (12h-13h)

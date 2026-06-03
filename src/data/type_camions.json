@@ -8,7 +8,7 @@
     "hauteur_m": null,
     "temps_chargement_enrobe": 4,
     "temps_bachage_enrobe": 5,
-    "temps_dechargement_enrobe": 20, 
+    "temps_sur_chantier": 35, 
     "vitesse_moyenne_kmh": null
   },
   {
@@ -20,7 +20,7 @@
     "hauteur_m": null,
     "temps_chargement_enrobe": 6,
     "temps_bachage_enrobe": 6,
-    "temps_dechargement_enrobe":25,
+    "temps_sur_chantier":40,
     "vitesse_moyenne_kmh": null
   },
   {
@@ -32,7 +32,7 @@
     "hauteur_m": null,
     "temps_chargement_enrobe": 10,
     "temps_bachage_enrobe": 2,
-    "temps_dechargement_enrobe": 30,
+    "temps_sur_chantier": 45,
     "vitesse_moyenne_kmh":null
   }
 ]

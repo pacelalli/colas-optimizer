@@ -1,8 +1,9 @@
+// Imports pour
 import { useState } from "react";
 import "./App.css";
 import Carte from "./components/Carte";
 import FormulaireChantier from "./components/FormulaireChantier";
-import { optimiser } from "./utils/optimisation";
+import { optimiser, calculerRotations } from "./utils/optimisation";
 
 function App() {
   const [onglet, setOnglet] = useState("accueil");
@@ -54,20 +55,29 @@ function App() {
           <div className="accueil">
             <h2>Bienvenue</h2>
             <p>
-              Cet outil permet d'optimiser la flotte de camions à l'échelle
-              de l'agence, en mutualisant les rotations entre chantiers.
+            Cet outil permet d'optimiser la flotte de camions à l'échelle
+            de l'agence, en mutualisant les rotations entre chantiers.
             </p>
             <button onClick={() => setOnglet("saisie")}>
               Commencer la saisie →
             </button>
           </div>
         )}
-        {onglet === "saisie" && (
-          <FormulaireChantier onAjoutChantier={ajouterChantier} />
+
+        {(onglet === "saisie" || onglet === "recap") && (
+          <div className="layout-with-panel">
+            <div>
+              {onglet === "saisie" && (
+                <FormulaireChantier onAjoutChantier={ajouterChantier} />
+              )}
+              {onglet === "recap" && (
+                <RecapJournalier chantiers={chantiers} />
+              )}
+            </div>
+            <JournalCalcul chantiers={chantiers} />
+          </div>
         )}
-        {onglet === "recap" && (
-          <RecapJournalier chantiers={chantiers} />
-        )}
+
         {onglet === "planning" && <p>Planning Gantt — à venir</p>}
         {onglet === "carte" && <Carte chantiers={chantiers} />}
       </main>
@@ -145,6 +155,90 @@ function RecapJournalier({ chantiers }) {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function JournalCalcul({ chantiers }) {
+
+  if (!chantiers || chantiers.length === 0) {
+    return (
+      <div className="journal-calcul">
+        <h3>🧮 Journal de calcul</h3>
+        <p className="journal-vide">
+          Saisissez un chantier pour voir<br />le détail des calculs
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="journal-calcul">
+      <h3>🧮 Journal de calcul</h3>
+      {chantiers.map((chantier, idx) => (
+        <JournalChantier key={chantier.id} chantier={chantier} idx={idx} />
+      ))}
+    </div>
+  );
+}
+
+function JournalChantier({ chantier, idx }) {
+  const calc = calculerRotations(chantier);
+
+  if (!calc) return (
+    <div className="journal-etape">
+      <div className="journal-etape-titre">⚠️ Chantier {idx + 1}</div>
+      <div className="journal-etape-ligne">Données insuffisantes</div>
+    </div>
+  );
+
+  return (
+    <div style={{ marginBottom: "1.5rem", paddingBottom: "1.5rem", borderBottom: "1px solid rgba(255,255,255,0.15)" }}>
+      <div style={{ fontSize: "0.9rem", fontWeight: 600, color: "var(--colas-jaune)", marginBottom: "0.75rem" }}>
+        📍 {chantier.nomChantier}
+      </div>
+
+      <div className="journal-etape">
+        <div className="journal-etape-titre">1. Localisation</div>
+        <div className="journal-etape-ligne">Zone : {chantier.zoneId || "Non renseignée"}</div>
+        <div className="journal-etape-ligne">Centrale : {calc.centraleId?.toUpperCase()}</div>
+        <div className="journal-etape-ligne">{chantier.chantierNuit ? "🌙 Chantier de nuit" : "☀️ Chantier de jour"}</div>
+      </div>
+
+      <div className="journal-etape">
+        <div className="journal-etape-titre">2. Temps de trajet</div>
+        <div className="journal-etape-ligne">Base : {Math.round(calc.tempsTrajet / (chantier.typeCamion === "semi" ? 1.35 : chantier.typeCamion === "8x4" ? 1.25 : 1.15))} min (VL)</div>
+        <div className="journal-etape-ligne">Coefficient camion : ×{chantier.typeCamion === "semi" ? 1.35 : chantier.typeCamion === "8x4" ? 1.25 : 1.15}</div>
+        <div className="journal-etape-resultat">→ {calc.tempsTrajet} min</div>
+      </div>
+
+      <div className="journal-etape">
+        <div className="journal-etape-titre">3. Temps de cycle</div>
+        <div className="journal-etape-ligne">Chargement + bâchage : {calc.tempsCycle - calc.tempsTrajet * 2 - (chantier.typeCamion === "semi" ? 60 : chantier.typeCamion === "8x4" ? 45 : 35)} min</div>
+        <div className="journal-etape-ligne">Trajet aller : {calc.tempsTrajet} min</div>
+        <div className="journal-etape-ligne">Temps sur chantier : {chantier.typeCamion === "semi" ? 60 : chantier.typeCamion === "8x4" ? 45 : 35} min</div>
+        <div className="journal-etape-ligne">Trajet retour : {calc.tempsTrajet} min</div>
+        <div className="journal-etape-resultat">→ Cycle : {calc.tempsCycle} min</div>
+      </div>
+
+      <div className="journal-etape">
+        <div className="journal-etape-titre">4. Temps disponible</div>
+        <div className="journal-etape-ligne">Durée brute : {calc.heureFinMin - calc.heureDepartCentrale + (calc.pauseRepas + calc.pauseChauffeur)} min</div>
+        <div className="journal-etape-ligne">- Pause chauffeur : {calc.pauseChauffeur} min</div>
+        {calc.pauseRepas > 0 && <div className="journal-etape-ligne">- Pause repas : {calc.pauseRepas} min</div>}
+        <div className="journal-etape-resultat">→ {calc.tempsDisponible} min effectifs</div>
+      </div>
+
+      <div className="journal-etape">
+        <div className="journal-etape-titre">5. Rotations & camions</div>
+        <div className="journal-etape-ligne">Rotations nécessaires : ceil({chantier.tonnage}/{calc.capacite}) = {Math.ceil(parseFloat(chantier.tonnage) / calc.capacite)}</div>
+        <div className="journal-etape-ligne">Rotations max/camion : floor({calc.tempsDisponible}/{calc.tempsCycle}) = {calc.rotationsParCamion}</div>
+        <div className="journal-etape-ligne">Camions nécessaires : ceil({Math.ceil(parseFloat(chantier.tonnage) / calc.capacite)}/{calc.rotationsParCamion}) = {calc.nbCamions}</div>
+        <div className="journal-etape-resultat">→ {calc.nbCamions} camion(s) × {calc.rotationsParCamion} rotations</div>
+        <div className="journal-etape-ligne" style={{ marginTop: "0.4rem", color: "#90EE90" }}>
+          ✅ {calc.nbCamions * calc.rotationsParCamion * calc.capacite}t livrées (objectif {chantier.tonnage}t)
+        </div>
+      </div>
     </div>
   );
 }

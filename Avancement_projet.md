@@ -6,58 +6,80 @@
 - Entreprise : Colas Alpes-Maritimes (agences Carros + Cannes)
 - Deadline : 19 juin 2026
 - Stack : React + Vite, Leaflet, JSON
+- GitHub : https://github.com/pacelalli/colas-optimizer
+
+## Livrables
+
+- Application web fonctionnelle
+- Support de soutenance (slides)
+- Pas de rapport écrit
 
 ## Fichiers créés
 
 - src/data/centrales.json ✅ (5 centrales avec GPS)
-- src/data/types_camions.json ✅ (4x2 9t, 8x4 17t, semi 29t)
-- src/data/flotte_camions_colasAM.json ✅ (11 véhicules réels)
-- src/components/Carte.jsx ✅ (carte Leaflet fonctionnelle)
+- src/data/type_camions.json ✅ (4x2, 8x4, semi — temps_sur_chantier, pas temps_dechargement)
+- src/data/flotte_camions_colasAM.json ✅ (11 véhicules réels Colas AM)
+- src/data/zones_am.json ✅ (zones AM alignées avec clés matrices distances)
+- src/data/distances_jour.json ✅ (temps VL de jour — SCERM complète, autres à compléter)
+- src/data/distances_nuit.json ✅ (temps VL de nuit — à compléter)
+- src/components/Carte.jsx ✅ (carte Leaflet avec centrales)
 - src/components/FormulaireChantier.jsx ✅ (formulaire complet)
-- src/utils/optimisation.js 🔲
-- src/data/distances.json 🔲
+- src/utils/optimisation.js ✅ (algorithme complet)
+- src/App.jsx ✅ (navigation + récap + journal de calcul)
 
 ## Ce qui fonctionne
 
-- Carte avec les 5 centrales affichées
-- Formulaire de saisie complet (CdT, date, chantier, centrale, enrobé, tonnage, horaires, camions)
-- Calcul automatique du nombre de camions
-- Récapitulatif journalier avec totaux (chantiers, tonnage, camions)
-- Chantiers groupés par date
+- Carte Leaflet avec 5 centrales
+- Formulaire de saisie complet :
+  - Conducteur de travaux
+  - Date + type jour/nuit
+  - Adresse + coordonnées GPS copier-coller
+  - Détection automatique de zone (Haversine)
+  - Centrale imposée ou suggérée automatiquement
+  - Type enrobé, tonnage, horaires
+  - Type de camion
+- Algorithme d'optimisation :
+  - Calcul rotations totales nécessaires
+  - Calcul rotations max par camion (temps disponible ÷ temps cycle)
+  - Calcul nb camions = ceil(rotations totales / rotations max)
+  - Gestion passage minuit
+  - Gestion pauses chauffeur (45 min) + repas (1h si jour)
+  - Priorité camions Colas sur locatiers
+  - Cadençage flux continu (décalage entre camions = temps_sur_chantier)
+  - Suggestion centrale automatique (priorité Colas + distance)
+- Récapitulatif journalier avec planning des rotations
+- Journal de calcul (panneau latéral droit) sur pages saisie et récap
+
+## Points importants de l'algorithme
+
+- heureDebut = arrivée sur chantier (pas départ centrale)
+- temps_sur_chantier remplace temps_dechargement (plus réaliste)
+- Matrices distances en minutes VL, coefficient par type camion appliqué
+- Deux matrices : jour et nuit (coefficient 0.7 la nuit)
+- zoneId détecté automatiquement via Haversine depuis coordonnées GPS
 
 ## Prochaine étape
 
-- Matrice distances.json (zones AM + temps de trajet)
-- Algorithme d'optimisation (src/utils/optimisation.js)
-- Affichage des chantiers sur la carte (pins oranges)
-- Planning Gantt
+- Équilibrage rotations entre camions (ceil(rotations_totales/nb_camions))
+- Affichage chantiers sur la carte (pins oranges)
+- Planning Gantt visuel
+- Indicateur CO₂ économisé
+- Coût à la tonne journalier
+- Compléter distances_jour.json pour SECA, SAME, SOMECA, CEB
 
 ## Questions en suspens pour Colas
 
-- Temps chargement/déchargement réels
 - Coût journalier camion interne vs locatier
 - Fraisat accepté : SECA, SAME, SOMECA, CEB ?
 - Système GPS télématique existant ?
-- Locatiers habituels ?
+- Locatiers habituels (noms, contacts, types camions) ?
+- Valider les temps sur chantier dans type_camions.json
 
-## 29/05/26
+## Règles métier importantes
 
-## Fichiers créés
-
-- src/data/centrales.json ✅
-- src/data/type_camions.json ✅
-- src/data/flotte_camions_colasAM.json ✅
-- src/data/zones_am.json ✅
-- src/data/distances_jour.json ✅ (à compléter avec valeurs terrain)
-- src/data/distances_nuit.json ✅ (à compléter avec valeurs terrain)
-- src/components/Carte.jsx ✅
-- src/components/FormulaireChantier.jsx ✅
-- src/utils/optimisation.js ✅
-- src/App.jsx ✅
-
-## Prochaine étape
-
-- Corriger erreur distances_jour.json (nom de fichier à vérifier)
-- Tester l'algorithme avec des chantiers réels
-- Affichage pins oranges chantiers sur la carte
-- Planning Gantt
+- SCERM prioritaire (Colas 100%)
+- Centrale imposée = respectée par l'algorithme
+- Centrale suggérée = algorithme optimise (priorité Colas + distance)
+- Camions Colas priorité 1, locatiers priorité 2
+- Chantier jour : pause repas 1h si chevauchement 12h-13h
+- Chantier nuit : pause chauffeur 45 min uniquement

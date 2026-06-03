@@ -214,5 +214,75 @@
     grid-template-columns: 1fr 1fr;
     gap: 1rem;
   }
+
+  .layout-with-panel {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.journal-calcul {
+  background: var(--colas-noir);
+  color: white;
+  border-radius: 4px;
+  padding: 1.25rem;
+  position: sticky;
+  top: 1rem;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+
+.journal-calcul h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--colas-jaune);
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.journal-etape {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.journal-etape:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.journal-etape-titre {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--colas-jaune);
+  margin-bottom: 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.journal-etape-ligne {
+  font-size: 0.78rem;
+  opacity: 0.8;
+  margin-bottom: 0.2rem;
+  line-height: 1.4;
+}
+
+.journal-etape-resultat {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: white;
+  margin-top: 0.4rem;
+}
+
+.journal-vide {
+  font-size: 0.8rem;
+  opacity: 0.4;
+  text-align: center;
+  margin-top: 2rem;
+  line-height: 1.6;
+}
 }
 
