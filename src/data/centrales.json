@@ -37,8 +37,8 @@
     "type": "plateforme_recyclage",
     "fraisat": true,
     "croutes_enrobe": true,
-    "propriete": "Privé",
-    "priorite": null,
+    "propriete": "Privé/COLAS",
+    "priorite": 2,
     "notes": "OK Validé"
   },
   {

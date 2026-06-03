@@ -1,89 +1,87 @@
 {
   "secteurs": [
     {
-      "id": "nice-peripherie",
+      "id": "nice-et-peripherie",
       "label": "Nice et périphérie",
       "communes": [
-        { "nom": "Nice", "code_postal": "06000", "lat": 43.7102, "lng": 7.2620 },
-        { "nom": "Saint-Laurent-du-Var", "code_postal": "06700", "lat": 43.6680, "lng": 7.1890 },
-        { "nom": "Cagnes-sur-Mer", "code_postal": "06800", "lat": 43.6640, "lng": 7.1490 },
-        { "nom": "Villeneuve-Loubet", "code_postal": "06270", "lat": 43.6580, "lng": 7.1220 },
-        { "nom": "La Trinité", "code_postal": "06340", "lat": 43.7410, "lng": 7.3070 },
-        { "nom": "Contes", "code_postal": "06390", "lat": 43.7940, "lng": 7.3190 },
-        { "nom": "L'Escarène", "code_postal": "06440", "lat": 43.8360, "lng": 7.3870 },
-        { "nom": "Vence", "code_postal": "06140", "lat": 43.7220, "lng": 7.1120 },
-        { "nom": "Saint-Paul-de-Vence", "code_postal": "06570", "lat": 43.6970, "lng": 7.1190 },
-        { "nom": "Carros", "code_postal": "06510", "lat": 43.7930, "lng": 7.1870 }
+        { "nom": "nice_ouest_aeroport", "label": "Nice Ouest / Aéroport", "code_postal": "06200", "lat": 43.6653, "lng": 7.2150 },
+        { "nom": "nice_nord", "label": "Nice Nord", "code_postal": "06100", "lat": 43.7250, "lng": 7.2620 },
+        { "nom": "nice_centre", "label": "Nice Centre", "code_postal": "06000", "lat": 43.7102, "lng": 7.2620 },
+        { "nom": "nice_est_bonvoyage", "label": "Nice Est / Bon Voyage", "code_postal": "06300", "lat": 43.7050, "lng": 7.2900 },
+        { "nom": "saint_laurent_du_var", "label": "Saint-Laurent-du-Var", "code_postal": "06700", "lat": 43.6680, "lng": 7.1890 },
+        { "nom": "cagnes_sur_mer", "label": "Cagnes-sur-Mer", "code_postal": "06800", "lat": 43.6640, "lng": 7.1490 },
+        { "nom": "villeneuve_loubet", "label": "Villeneuve-Loubet", "code_postal": "06270", "lat": 43.6580, "lng": 7.1220 },
+        { "nom": "contes", "label": "Contes", "code_postal": "06390", "lat": 43.7940, "lng": 7.3190 },
+        { "nom": "escarene", "label": "L'Escarène", "code_postal": "06440", "lat": 43.8360, "lng": 7.3870 }
       ]
     },
     {
-      "id": "antibes-sophia",
-      "label": "Antibes / Sophia-Antipolis",
+      "id": "carros-vence-arriere-pays-niçois",
+      "label": "Carros / Vence / Arrière-pays niçois",
       "communes": [
-        { "nom": "Antibes", "code_postal": "06600", "lat": 43.5804, "lng": 7.1282 },
-        { "nom": "Juan-les-Pins", "code_postal": "06160", "lat": 43.5700, "lng": 7.1060 },
-        { "nom": "Biot", "code_postal": "06410", "lat": 43.6290, "lng": 7.1010 },
-        { "nom": "Vallauris", "code_postal": "06220", "lat": 43.5800, "lng": 7.0540 },
-        { "nom": "Mougins", "code_postal": "06250", "lat": 43.6000, "lng": 6.9960 },
-        { "nom": "Sophia-Antipolis", "code_postal": "06560", "lat": 43.6190, "lng": 7.0580 },
-        { "nom": "Le Cannet", "code_postal": "06110", "lat": 43.5760, "lng": 7.0170 }
+        { "nom": "agence_colas_carros", "label": "Agence Colas Carros", "code_postal": "06510", "lat": 43.7934, "lng": 7.1993 },
+        { "nom": "carros_village", "label": "Carros Village", "code_postal": "06510", "lat": 43.8020, "lng": 7.1870 },
+        { "nom": "vence", "label": "Vence", "code_postal": "06140", "lat": 43.7220, "lng": 7.1120 },
+        { "nom": "saint_paul_de_vence", "label": "Saint-Paul-de-Vence", "code_postal": "06570", "lat": 43.6970, "lng": 7.1190 }
       ]
     },
     {
-      "id": "cannes-mandelieu",
-      "label": "Cannes / Mandelieu",
+      "id": "antibes-sophia-cannes",
+      "label": "Antibes / Sophia / Cannes",
       "communes": [
-        { "nom": "Cannes", "code_postal": "06400", "lat": 43.5528, "lng": 7.0174 },
-        { "nom": "Mandelieu-la-Napoule", "code_postal": "06210", "lat": 43.5460, "lng": 6.9380 },
-        { "nom": "Théoule-sur-Mer", "code_postal": "06590", "lat": 43.5100, "lng": 6.9410 }
+        { "nom": "antibes", "label": "Antibes", "code_postal": "06600", "lat": 43.5804, "lng": 7.1282 },
+        { "nom": "juan_les_pins", "label": "Juan-les-Pins", "code_postal": "06160", "lat": 43.5700, "lng": 7.1060 },
+        { "nom": "vallauris", "label": "Vallauris", "code_postal": "06220", "lat": 43.5800, "lng": 7.0540 },
+        { "nom": "biot", "label": "Biot", "code_postal": "06410", "lat": 43.6290, "lng": 7.1010 },
+        { "nom": "polytech_nice_sophia", "label": "Sophia-Antipolis / Polytech", "code_postal": "06560", "lat": 43.6190, "lng": 7.0580 },
+        { "nom": "mougins", "label": "Mougins", "code_postal": "06250", "lat": 43.6000, "lng": 6.9960 },
+        { "nom": "cannes", "label": "Cannes", "code_postal": "06400", "lat": 43.5528, "lng": 7.0174 },
+        { "nom": "mandelieu_la_napoule", "label": "Mandelieu-la-Napoule", "code_postal": "06210", "lat": 43.5460, "lng": 6.9380 },
+        { "nom": "theoule_sur_mer", "label": "Théoule-sur-Mer", "code_postal": "06590", "lat": 43.5100, "lng": 6.9410 }
       ]
     },
     {
       "id": "grasse-arriere-pays",
       "label": "Grasse / Arrière-pays",
       "communes": [
-        { "nom": "Grasse", "code_postal": "06130", "lat": 43.6590, "lng": 6.9240 },
-        { "nom": "Valbonne", "code_postal": "06560", "lat": 43.6410, "lng": 7.0070 },
-        { "nom": "Opio", "code_postal": "06650", "lat": 43.6620, "lng": 6.9760 },
-        { "nom": "Châteauneuf-Grasse", "code_postal": "06740", "lat": 43.6720, "lng": 6.9980 },
-        { "nom": "Le Bar-sur-Loup", "code_postal": "06620", "lat": 43.6960, "lng": 6.9990 },
-        { "nom": "Cabris", "code_postal": "06530", "lat": 43.6640, "lng": 6.8960 },
-        { "nom": "Gourdon", "code_postal": "06620", "lat": 43.7170, "lng": 6.9850 }
+        { "nom": "grasse", "label": "Grasse", "code_postal": "06130", "lat": 43.6590, "lng": 6.9240 },
+        { "nom": "valbonne", "label": "Valbonne", "code_postal": "06560", "lat": 43.6410, "lng": 7.0070 },
+        { "nom": "opio", "label": "Opio", "code_postal": "06650", "lat": 43.6620, "lng": 6.9760 },
+        { "nom": "chateauneuf_grasse", "label": "Châteauneuf-Grasse", "code_postal": "06740", "lat": 43.6720, "lng": 6.9980 },
+        { "nom": "le_bar_sur_loup", "label": "Le Bar-sur-Loup", "code_postal": "06620", "lat": 43.6960, "lng": 6.9990 },
+        { "nom": "gourdon", "label": "Gourdon", "code_postal": "06620", "lat": 43.7170, "lng": 6.9850 },
+        { "nom": "andon", "label": "Andon", "code_postal": "06750", "lat": 43.7850, "lng": 6.7800 },
+        { "nom": "greolieres_les_neiges", "label": "Gréolières-les-Neiges", "code_postal": "06620", "lat": 43.8050, "lng": 6.9120 }
       ]
     },
     {
       "id": "menton-monaco-est",
       "label": "Menton / Monaco / Est",
       "communes": [
-        { "nom": "Menton", "code_postal": "06500", "lat": 43.7750, "lng": 7.5020 },
-        { "nom": "Roquebrune-Cap-Martin", "code_postal": "06190", "lat": 43.7630, "lng": 7.4720 },
-        { "nom": "Beausoleil", "code_postal": "06240", "lat": 43.7430, "lng": 7.4230 },
-        { "nom": "Cap-d'Ail", "code_postal": "06320", "lat": 43.7230, "lng": 7.4020 },
-        { "nom": "Èze", "code_postal": "06360", "lat": 43.7270, "lng": 7.3620 },
-        { "nom": "Villefranche-sur-Mer", "code_postal": "06230", "lat": 43.7050, "lng": 7.3090 },
-        { "nom": "Saint-Jean-Cap-Ferrat", "code_postal": "06230", "lat": 43.6910, "lng": 7.3320 },
-        { "nom": "Beaulieu-sur-Mer", "code_postal": "06310", "lat": 43.7060, "lng": 7.3270 }
+        { "nom": "menton", "label": "Menton", "code_postal": "06500", "lat": 43.7750, "lng": 7.5020 },
+        { "nom": "roquebrune_cap_martin", "label": "Roquebrune-Cap-Martin", "code_postal": "06190", "lat": 43.7630, "lng": 7.4720 },
+        { "nom": "cap_d_ail", "label": "Cap-d'Ail", "code_postal": "06320", "lat": 43.7230, "lng": 7.4020 },
+        { "nom": "eze_village", "label": "Èze Village", "code_postal": "06360", "lat": 43.7270, "lng": 7.3620 },
+        { "nom": "villefranche_sur_mer", "label": "Villefranche-sur-Mer", "code_postal": "06230", "lat": 43.7050, "lng": 7.3090 },
+        { "nom": "beaulieu_sur_mer", "label": "Beaulieu-sur-Mer", "code_postal": "06310", "lat": 43.7060, "lng": 7.3270 },
+        { "nom": "sospel", "label": "Sospel", "code_postal": "06380", "lat": 43.8770, "lng": 7.4450 }
       ]
     },
     {
       "id": "var-limite-ouest",
-      "label": "Var — limite ouest 06",
+      "label": "Var — limite ouest",
       "communes": [
-        { "nom": "Saint-Raphaël", "code_postal": "83700", "lat": 43.4252, "lng": 6.7679 },
-        { "nom": "Fréjus", "code_postal": "83600", "lat": 43.4328, "lng": 6.7369 },
-        { "nom": "Puget-sur-Argens", "code_postal": "83480", "lat": 43.4560, "lng": 6.6930 }
+        { "nom": "saint_raphael", "label": "Saint-Raphaël", "code_postal": "83700", "lat": 43.4252, "lng": 6.7679 },
+        { "nom": "frejus", "label": "Fréjus", "code_postal": "83600", "lat": 43.4328, "lng": 6.7369 }
       ]
     },
     {
       "id": "arriere-pays-montagne",
       "label": "Arrière-pays / Montagne",
       "communes": [
-        { "nom": "Saint-Martin-Vésubie", "code_postal": "06450", "lat": 44.0680, "lng": 7.2520 },
-        { "nom": "Sospel", "code_postal": "06380", "lat": 43.8770, "lng": 7.4450 },
-        { "nom": "Breil-sur-Roya", "code_postal": "06540", "lat": 43.9380, "lng": 7.5150 },
-        { "nom": "Tende", "code_postal": "06430", "lat": 44.0850, "lng": 7.5930 },
-        { "nom": "Isola", "code_postal": "06420", "lat": 44.1890, "lng": 7.0880 },
-        { "nom": "Valdeblore", "code_postal": "06420", "lat": 44.0760, "lng": 7.1680 }
+        { "nom": "saint_martin_vesubie", "label": "Saint-Martin-Vésubie", "code_postal": "06450", "lat": 44.0680, "lng": 7.2520 },
+        { "nom": "valdeblore", "label": "Valdeblore", "code_postal": "06420", "lat": 44.0760, "lng": 7.1680 },
+        { "nom": "isola_2000", "label": "Isola 2000", "code_postal": "06420", "lat": 44.1890, "lng": 7.0880 }
       ]
     }
   ]
