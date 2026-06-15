@@ -178,12 +178,17 @@ export function calculerRotations(chantier) {
   const capacite = type.tonnage_utile; // déjà en tonnes
   const nuit = chantier.chantierNuit ?? false;
 
- const centraleId = chantier.centrale;
-if (!centraleId) return null; // pas de centrale → pas de calcul
+  const centraleId = chantier.centrale;
+  if (!centraleId) return null; // pas de centrale → pas de calcul
 
-  const tempsTrajetBase = getTempsTrajet(centraleId, chantier.zoneId, nuit);
-  const coeff = type.coefficient_trajet ?? 1.0;
-  const tempsTrajet = Math.round(tempsTrajetBase * coeff);
+  const tempsTrajet = getTempsTrajet(centraleId, chantier.zoneId, nuit, type.coeff_vitesse ?? 1.0);
+  if (tempsTrajet === null) return null;
+
+// ← ICI
+console.log("=== CALCUL ROTATIONS ===");
+console.log("Centrale:", centraleId);
+console.log("Zone:", chantier.zoneId);
+console.log("Trajet (min):", tempsTrajet);
 
   // heureDebut = arrivée sur chantier
   // donc départ centrale = heureDebut - trajet - chargement - bâchage
@@ -219,22 +224,49 @@ if (!centraleId) return null; // pas de centrale → pas de calcul
     type.temps_sur_chantier +
     tempsTrajet;
 
-  // Rotations par camion
-  const rotationsParCamion = Math.max(1, Math.floor(tempsDisponible / tempsCycle));
+const intervalleArrivee = type.temps_sur_chantier;
+const rotationsExactes = tempsDisponible / tempsCycle;
+const entierInf = Math.floor(rotationsExactes);
+const entierSup = Math.ceil(rotationsExactes);
 
-  // Tonnage livré par camion
-  const tonnageParCamion = rotationsParCamion * capacite;
+let rotationsParCamion;
+let nbCamions;
 
-  // Camions nécessaires pour le tonnage
-  const nbCamionsTonnage = Math.ceil(tonnage / tonnageParCamion);
+if (rotationsExactes >= entierInf + 0.5) {
+  // Dans la marge → la plupart font entierSup rotations
+  rotationsParCamion = entierSup;
+} else {
+  // Trop proche de l'entier inf → tous font entierInf rotations, on ajoute des camions
+  rotationsParCamion = entierInf;
+}
 
-  // Camions nécessaires pour flux continu (finisseur)
-  const intervalleArrivee = type.temps_sur_chantier;
-  const nbCamionsFluxContinu = Math.ceil(tempsCycle / intervalleArrivee);
+// Tonnage par camion
+const tonnageParCamion = rotationsParCamion * capacite;
 
-  // On prend le max des deux
-  const nbCamions = Math.max(nbCamionsTonnage, nbCamionsFluxContinu);
+// Nb camions pour le tonnage
+const nbCamionsTonnage = Math.ceil(tonnage / tonnageParCamion);
+const nbCamionsFluxContinu = Math.ceil(tempsCycle / intervalleArrivee);
+nbCamions = Math.max(nbCamionsTonnage, nbCamionsFluxContinu);
 
+// Reste à livrer + statut dernier camion
+const rotationsTotales = nbCamions * rotationsParCamion;
+const tonnageTotalCapacite = rotationsTotales * capacite;
+const resteALivrer = tonnage - (rotationsTotales - 1) * capacite * nbCamions;
+const excedent = tonnageTotalCapacite - tonnage;
+const dernierChargement = capacite - excedent % capacite;
+
+const dernierCamionStatut = dernierChargement < capacite * 0.5
+  ? "en attente des ordres du chef de chantier"
+  : "chargement partiel prévu";
+
+  // ← ICI
+console.log("Temps cycle (min):", tempsCycle);
+console.log("Temps disponible (min):", tempsDisponible);
+console.log("Rotations/camion:", rotationsParCamion);
+console.log("Nb camions tonnage:", nbCamionsTonnage);
+console.log("Nb camions flux continu:", nbCamionsFluxContinu);
+console.log("→ Nb camions final:", nbCamions);
+console.log("========================");
   console.log("tempsDisponible:", tempsDisponible);
   console.log("tempsCycle:", tempsCycle);
   console.log("rotationsParCamion:", rotationsParCamion);

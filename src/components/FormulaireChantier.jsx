@@ -75,6 +75,10 @@ function FormulaireChantier({ onAjoutChantier }) {
       alert("Merci de sélectionner une centrale (centrale imposée)");
       return;
     }
+    if (!form.lat || !form.lng) {
+      alert("Merci de renseigner les coordonnées GPS du chantier");
+      return;
+    }
 
     {/*Calcul des options comparatives */}
     const options = comparerCentrales({
@@ -301,7 +305,7 @@ function FormulaireChantier({ onAjoutChantier }) {
         </div>
 
         <div className="form-row">
-          <label>Coordonnées GPS (Google Maps) </label>
+          <label>Coordonnées GPS (Google Maps) * </label>
           <input
             type="text"
             name="coordonnees"
