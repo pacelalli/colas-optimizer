@@ -1,6 +1,6 @@
 [
   {
-    "id": "'4x2'",
+    "id": "4x2",
     "label": "4x2 (9t)",
     "PV": 9.5,
     "PTAC": 19 , 
@@ -9,7 +9,11 @@
     "temps_chargement_enrobe": 4,
     "temps_bachage_enrobe": 5,
     "temps_sur_chantier": 35, 
-    "vitesse_moyenne_kmh": null
+    "coeff_vitesse": 1.15,
+    "prix_colas_jour": 760,
+    "prix_locatier_jour": 590,
+    "prix_colas_nuit": 1200 ,
+    "prix_locatier_nuit" : 750 
   },
   {
     "id": "8x4",
@@ -21,7 +25,11 @@
     "temps_chargement_enrobe": 6,
     "temps_bachage_enrobe": 6,
     "temps_sur_chantier":40,
-    "vitesse_moyenne_kmh": null
+    "coeff_vitesse": 1.2,
+    "prix_colas_jour": 920,
+    "prix_locatier_jour": 670,
+    "prix_colas_nuit": 1350 ,
+    "prix_locatier_nuit" : 870
   },
   {
     "id": "semi",
@@ -33,6 +41,10 @@
     "temps_chargement_enrobe": 10,
     "temps_bachage_enrobe": 2,
     "temps_sur_chantier": 45,
-    "vitesse_moyenne_kmh":null
+    "coeff_vitesse": 1.25,
+    "prix_colas_jour": 960,
+    "prix_locatier_jour": 760,
+    "prix_colas_nuit": 1400,
+    "prix_locatier_nuit" : 980
   }
 ]

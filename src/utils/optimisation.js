@@ -1,39 +1,49 @@
-import distancesJour from "../data/distances_jour.json";
-import distancesNuit from "../data/distances_nuit.json";
+// Import des fichiers base de données (.JSON) pour utilisation dans le présent fichier
+import distances from "../data/distances.json";
 import typesCamions from "../data/type_camions.json";
 import flotteCamions from "../data/flotte_camions_colasAM.json";
 import zonesAM from "../data/zones_am.json";
+import centrales from "../data/centrales.json";
+import formules from "../data/formules_enrobes.json";
 
 // ─── DÉTECTION AUTOMATIQUE DE ZONE ──────────────────────────────────────────
 
+// Initialisation d'une fonction qui reçoit les coordonnées GPS de deux points (latitude et longitude)
 function haversine(lat1, lng1, lat2, lng2) {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const R = 6371; {/* rayon de la terre (en km) - constante nécessaire pour calcul de distances réelles */}
+  const dLat = ((lat2 - lat1) * Math.PI) / 180; {/* calcule la différence de latitude et longitude entre les deux points --> conversion de degrés en radians pour trigonométire JavaScript*/}
   const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  {/* formule mathématique de Haversine, calcul de distances en prenant compte de la courbure de la terre */}
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos((lat1 * Math.PI) / 180) *
       Math.cos((lat2 * Math.PI) / 180) *
       Math.sin(dLng / 2) *
       Math.sin(dLng / 2);
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); {/*} finalise le calcul et retourne la distance en km --> distance réelle à vol d'oiseau entre deux points */}
 }
 
+// Fonction exportée qui reçoit les coordonnées GPS du chantier 
 export function trouverZone(lat, lng) {
-  if (!lat || !lng) return null;
+  if (!lat || !lng) return null; {/* si les coordonées sont manquantes, alors pas la peine de chercher */}
 
-  let meilleureCommune = null;
-  let meilleureSecteur = null;
-  let distanceMin = Infinity;
+  // intialisation de trois variables 
+  let meilleureCommune = null; {/* la commune la plus proche trouvée jusqu'ici */}
+  let meilleureSecteur = null; {/* le secteur de cette commune */}
+  let distanceMin = Infinity; {/* distance minimale, commence à l'infini pour que la première commune testée la batte forcémen */}
 
-  for (const secteur of zonesAM.secteurs) {
+  // boucle sur chaque secteur de zones_am.json
+  for (const secteur of zonesAM.secteurs) { 
+    // pour chaque secteur, boucle sur les villes/communes
     for (const commune of secteur.communes) {
+      // si pas de coorodnnées GPS pour la commune, alors on la saute
       if (!commune.lat || !commune.lng) continue;
-      const dist = haversine(lat, lng, commune.lat, commune.lng);
+      const dist = haversine(lat, lng, commune.lat, commune.lng); {/* caclule, avec la fonction expliquée ci-dessus, la distance à vol d'oiseau entre le chantier et cette commune */}
+      // si cette commune est plus du chantier que la meilleure trouvée jusqu'ici, alors 
       if (dist < distanceMin) {
-        distanceMin = dist;
-        meilleureCommune = commune;
-        meilleureSecteur = secteur;
+        distanceMin = dist; {/* elle devient la nouvelle distance min */}
+        meilleureCommune = commune; {/* elle devient la meilleure commune */}
+        meilleureSecteur = secteur; {/* le secteur devient le meilleur */}
       }
     }
   }
@@ -50,37 +60,90 @@ export function trouverZone(lat, lng) {
   };
 }
 
-export function suggererCentrale(lat, lng) {
-  if (!lat || !lng) return "scerm";
+// ─── COMPARAISON DES CENTRALES ───────────────────────────────────────────────
 
-  const centralesPrioritaires = [
-    { id: "scerm", lat: 43.79341752457463, lng: 7.199321900683945, priorite: 1 },
-    { id: "seca", lat: 43.7335066659438, lng: 7.3000760627566486, priorite: 2 },
-    { id: "same", lat: 43.6870408041973, lng: 7.194072195888311, priorite: 3 },
-    { id: "someca", lat: 43.53882282594299, lng: 6.560561467041949, priorite: 4 },
-    { id: "ceb", lat: 43.43334136765973, lng: 6.821451587098211, priorite: 5 },
-  ];
+export function comparerCentrales(chantier, nbCamionsColas = 0) {
+  const type = getTypeCamion(chantier.typeCamion);
+  if (!type) return [];
+  if (!chantier.formule) return [];
 
-  let meilleure = null;
-  let scoreMin = Infinity;
+  // Trouver la formule choisie
+  const formule = formules.find((f) => f.id === chantier.formule);
+  if (!formule) return [];
 
-  for (const centrale of centralesPrioritaires) {
-    const dist = haversine(lat, lng, centrale.lat, centrale.lng);
-    const score = dist * centrale.priorite;
-    if (score < scoreMin) {
-      scoreMin = score;
-      meilleure = centrale;
-    }
+  const nuit = chantier.chantierNuit ?? false;
+  const options = [];
+
+  for (const centrale of centrales) {
+
+    // Centrale imposée ? On ignore les autres
+    if (chantier.centraleImposee && centrale.id !== chantier.centrale) continue;
+
+    // Cette centrale produit-elle la formule ?
+    const tarif = formule.centrales.find((c) => c.centrale_id === centrale.id);
+    if (!tarif?.disponible || tarif.prix_tonne === null) continue;
+
+    // Calculer les rotations avec cette centrale
+    const chantierAvecCentrale = {
+      ...chantier,
+      centrale:        centrale.id,
+      centraleImposee: true,
+    };
+    const calc = calculerRotations(chantierAvecCentrale);
+    if (!calc) continue;
+
+    const nbCamionsTotal  = calc.nbCamions;
+    const nbColas         = Math.min(nbCamionsColas, nbCamionsTotal);
+    const nbLocatiers     = nbCamionsTotal - nbColas;
+
+    // Coût matière
+    const coutMatiere = calc.tonnage * tarif.prix_tonne;
+
+    // Coût transport selon jour/nuit et répartition Colas/locatiers
+    const prixUnitaireColas     = nuit ? type.prix_colas_nuit     : type.prix_colas_jour;
+    const prixUnitaireLocatier  = nuit ? type.prix_locatier_nuit  : type.prix_locatier_jour;
+
+    const coutCamions = (nbColas * prixUnitaireColas) + (nbLocatiers * prixUnitaireLocatier);
+
+    const coutTotal  = coutMatiere + coutCamions;
+    const prixTonne  = Math.round(coutTotal / calc.tonnage);
+
+    options.push({
+      centraleId:   centrale.id,
+      centraleNom:  centrale.nom,
+      formuleId:    formule.id,
+      formuleNom:   formule.nom,
+      numero:       tarif.numero ?? null,
+      nbCamions:    nbCamionsTotal,
+      nbColas,
+      nbLocatiers,
+      distanceKm:   Math.round(haversine(chantier.lat, chantier.lng, centrale.lat, centrale.lng)),
+      prixTonne,
+      coutTotal:    Math.round(coutTotal),
+      detail: {
+        coutMatiere:  Math.round(coutMatiere),
+        coutCamions:  Math.round(coutCamions),
+        prixTonneMatiere: tarif.prix_tonne,
+      },
+    });
   }
 
-  return meilleure?.id ?? "scerm";
+  // Trier par prix à la tonne croissant
+  return options.sort((a, b) => a.prixTonne - b.prixTonne);
 }
 
-// ─── UTILITAIRES ────────────────────────────────────────────────────────────
 
-function getTempsTrajet(centraleId, zoneId, isNuit = false) {
-  const matrice = isNuit ? distancesNuit : distancesJour;
-  return matrice[centraleId]?.[zoneId] ?? 45; // 45 min par défaut si inconnu
+// FONCTIONS UTILES
+
+{/* Déclaration de la fonction avec 4 entrées, et chantier de jour par défaut et coefficent de vitesse de camion à 1 par défaut */}
+function getTempsTrajet(centraleId, zoneId, isNuit = false, coeffCamion = 1.0) {
+  const tempsBase = distances[centraleId]?.[zoneId]; {/* Récupère le temps de trajet de base dans distances.json */}
+  if (tempsBase === null || tempsBase === undefined) return null; {/* Si pas de données → retourne null */}
+  // ? valeur_si_vrai : valeur_si_faux
+  const coeffTrafic = isNuit 
+    ? distances.meta.coeff_nuit 
+    : distances.meta.coeff_jour;
+  return Math.round(tempsBase * coeffTrafic * coeffCamion); {/*Applique le coefficient de vitesse du type de camion (dans l'appel de la fonction calculer rotations) */}
 }
 
 function getTypeCamion(typeId) {
@@ -115,9 +178,8 @@ export function calculerRotations(chantier) {
   const capacite = type.tonnage_utile; // déjà en tonnes
   const nuit = chantier.chantierNuit ?? false;
 
-  const centraleId = chantier.centraleImposee
-    ? chantier.centrale
-    : chantier.centrale || suggererCentrale(chantier.lat, chantier.lng);
+ const centraleId = chantier.centrale;
+if (!centraleId) return null; // pas de centrale → pas de calcul
 
   const tempsTrajetBase = getTempsTrajet(centraleId, chantier.zoneId, nuit);
   const coeff = type.coefficient_trajet ?? 1.0;

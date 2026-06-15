@@ -20,8 +20,7 @@
 - src/data/type_camions.json ✅ (4x2, 8x4, semi — temps_sur_chantier, pas temps_dechargement)
 - src/data/flotte_camions_colasAM.json ✅ (11 véhicules réels Colas AM)
 - src/data/zones_am.json ✅ (zones AM alignées avec clés matrices distances)
-- src/data/distances_jour.json ✅ (temps VL de jour — SCERM complète, autres à compléter)
-- src/data/distances_nuit.json ✅ (temps VL de nuit — à compléter)
+- src/data/distances.json ✅ (temps VL de jour — SCERM complète, autres à compléter)
 - src/components/Carte.jsx ✅ (carte Leaflet avec centrales)
 - src/components/FormulaireChantier.jsx ✅ (formulaire complet)
 - src/utils/optimisation.js ✅ (algorithme complet)
@@ -65,7 +64,7 @@
 - Planning Gantt visuel
 - Indicateur CO₂ économisé
 - Coût à la tonne journalier
-- Compléter distances_jour.json pour SECA, SAME, SOMECA, CEB
+- Compléter distances.json pour SECA, SAME, SOMECA, CEB
 
 ## Questions en suspens pour Colas
 
