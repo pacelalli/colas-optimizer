@@ -3,10 +3,11 @@
 // et le détail complet d'un chantier avec journal de calcul
 // Import des fonctions et données
 import { useState } from "react";
-import { optimiser, calculerRotations } from "../utils/optimisation";
+import { optimiser, calculerRotations, optimiserJournee } from "../utils/optimisation";
 import centrales from "../data/centrales.json";
 import camions from "../data/type_camions.json";
 import formules from "../data/formules_enrobes.json";
+
 
 // ─── UTILITAIRES CALENDRIER ──────────────────────────────────────────────────
 
@@ -44,6 +45,7 @@ function RecapPlanning({ chantiers }) {
   // État de la navigation
   const [dateSelectionnee, setDateSelectionnee] = useState(null);   // "YYYY-MM-DD"
   const [chantierOuvert, setChantierOuvert] = useState(null);       // id du chantier ouvert
+  const [resultatOptimisation, setResultatOptimisation] = useState(null);
 
   // ─── DONNÉES PAR DATE ──────────────────────────────────────────────────────
   // Construit un index : { "2026-06-16": [chantier1, chantier2], ... }
@@ -156,11 +158,21 @@ function RecapPlanning({ chantiers }) {
       {/* Liste des chantiers du jour sélectionné */}
       {dateSelectionnee && chantiersJourSelectionne.length > 0 && (
         <div className="planning-jour">
-          <h3 className="planning-jour-titre">
-            📅 {new Date(dateSelectionnee + "T12:00:00").toLocaleDateString("fr-FR", {
-              weekday: "long", day: "numeric", month: "long", year: "numeric"
-            })}
-          </h3>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
+            <h3 className="planning-jour-titre">
+              📅 {new Date(dateSelectionnee + "T12:00:00").toLocaleDateString("fr-FR", {
+                weekday: "long", day: "numeric", month: "long", year: "numeric"
+              })}
+            </h3>
+            {chantiersJourSelectionne.length >= 2 && (
+              <button
+                className="btn-optimiser"
+                onClick={() => setResultatOptimisation(optimiserJournee(chantiersJourSelectionne))}
+              >
+                🔧 Optimiser cette journée
+              </button>
+            )}
+          </div>
 
           <div className="planning-colonnes">
             {/* Colonne JOUR */}
@@ -195,6 +207,37 @@ function RecapPlanning({ chantiers }) {
               }
             </div>
           </div>
+          
+          {/* Résultat optimisation */}
+          {resultatOptimisation && (
+            <div className="optimisation-resultat">
+              <div className="optimisation-header">
+                <span>⚡ Optimisation réalisée</span>
+                <span className="optimisation-economie">
+                  {resultatOptimisation.economie > 0
+                    ? `✅ ${resultatOptimisation.economie} camion(s) économisé(s)`
+                    : "Aucune optimisation possible sur cette journée"}
+                </span>
+              </div>
+              <div className="optimisation-chiffres">
+                <div>Avant : <strong>{resultatOptimisation.totalCamionsAvant} camions</strong></div>
+                <div>Après : <strong>{resultatOptimisation.totalCamionsApres} camions</strong></div>
+              </div>
+              {resultatOptimisation.renforts.length > 0 && (
+                <div className="optimisation-renforts">
+                  <div className="optimisation-renforts-titre">Renforts identifiés :</div>
+                  {resultatOptimisation.renforts.map((r, i) => (
+                    <div key={i} className="optimisation-renfort-ligne">
+                      🚛 <strong>{r.chantierA}</strong> → renforce <strong>{r.chantierB}</strong>
+                      <span style={{ opacity: 0.7 }}>
+                        · {r.distanceKm} km · {r.rotationsRenfort} rotation(s) · {r.tonnageRenfort}t
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

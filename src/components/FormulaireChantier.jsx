@@ -45,6 +45,7 @@ function FormulaireChantier({ onAjoutChantier }) {
     heureDebut: "",
     heureFin: "",
     typeCamion: "8x4",
+    typeTrajet:"urbain",
   });
 
   const [etape, setEtape] = useState("saisie"); {/*Etape du formulaire : saisie ou comparatif */}
@@ -275,6 +276,7 @@ function FormulaireChantier({ onAjoutChantier }) {
             typeEnrobe: "", tonnage: "",
             heureDebut: "", heureFin: "",
             typeCamion: "8x4",
+            typeTrajet: "urbain",
           });
           setZoneDetectee(null);
           setResultat(null);
@@ -393,6 +395,33 @@ function FormulaireChantier({ onAjoutChantier }) {
                   onClick={() => setForm({ ...form, chantierNuit: true })}
                 >
                   🌙 Chantier de nuit
+                </button>
+              </div>
+            </div>
+
+            <div className="form-row">
+              <label>Type de trajet *</label>
+              <div className="toggle-group">
+                <button
+                  type="button"
+                  className={form.typeTrajet === "urbain" ? "toggle-btn actif" : "toggle-btn"}
+                  onClick={() => setForm({ ...form, typeTrajet: "urbain" })}
+                >
+                  🏙️ Urbain
+                </button>
+                <button
+                  type="button"
+                  className={form.typeTrajet === "montagne" ? "toggle-btn actif" : "toggle-btn"}
+                  onClick={() => setForm({ ...form, typeTrajet: "montagne" })}
+                >
+                  🏔️ Montagne
+                </button>
+                <button
+                  type="button"
+                  className={form.typeTrajet === "autoroute" ? "toggle-btn actif" : "toggle-btn"}
+                  onClick={() => setForm({ ...form, typeTrajet: "autoroute" })}
+                >
+                  🛣️ Autoroute
                 </button>
               </div>
             </div>

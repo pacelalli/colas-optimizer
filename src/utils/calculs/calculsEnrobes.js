@@ -96,7 +96,7 @@ export function calculerRotationsEnrobes(chantier) {
   if (!centraleId) return null; // pas de centrale → pas de calcul
 
   // Temps de trajet central → chantier en minutes (avec coefficients nuit + type camion)
-  const tempsTrajet = getTempsTrajet(centraleId, chantier.zoneId, nuit, type.coeff_vitesse ?? 1.0);
+  const tempsTrajet = getTempsTrajet(centraleId, chantier.zoneId, nuit, type, chantier.typeTrajet ?? "urbain");
   if (tempsTrajet === null) return null;
 
   // heureDebut = arrivée sur chantier
@@ -144,6 +144,7 @@ export function calculerRotationsEnrobes(chantier) {
   const rotationsExactes = tempsDisponible / tempsCycle;
   const entierInf = Math.floor(rotationsExactes);
   const entierSup = Math.ceil(rotationsExactes);
+  const rotationsTotales = Math.ceil(tonnage / capacite);
 
   let rotationsParCamion;
 
@@ -159,7 +160,10 @@ export function calculerRotationsEnrobes(chantier) {
   const tonnageParCamion = rotationsParCamion * capacite;
 
   // Nombre de camions nécessaires pour le tonnage
-  const nbCamionsTonnage = Math.ceil(tonnage / tonnageParCamion);
+  // Après — basé sur rotations exactes, pas arrondies
+ const nbCamionsTonnage = rotationsExactes >= entierInf + 0.5
+    ? Math.ceil(rotationsTotales / rotationsExactes)  // ex: ceil(35/2.62) = 14
+    : Math.ceil(rotationsTotales / entierInf);         // ex: ceil(35/2.3) = 18
 
   // Nombre de camions nécessaires pour flux continu (alimenter le finisseur sans interruption)
   const nbCamionsFluxContinu = Math.ceil(tempsCycle / intervalleArrivee);
@@ -167,6 +171,10 @@ export function calculerRotationsEnrobes(chantier) {
   // On prend le max des deux contraintes
   const nbCamions = Math.max(nbCamionsTonnage, nbCamionsFluxContinu);
 
+  // Répartition entre camions qui font rotationsMax et ceux qui font rotationsMin
+  const excedentRotations = (nbCamions * entierInf) - rotationsTotales;
+  const nbCamionsRotationsMin = excedentRotations > 0 ? excedentRotations : 0;
+  const nbCamionsRotationsMax = nbCamions - nbCamionsRotationsMin;
   // ─── CALCUL DERNIER CAMION ───────────────────────────────────────────────
   // Tonnage total si tous les camions font rotationsParCamion rotations complètes
   const tonnageTotalCapacite = nbCamions * rotationsParCamion * capacite;
@@ -222,6 +230,8 @@ console.log("========================");
     // Camions
     nbCamions,
     nbCamionsTonnage,
+    nbCamionsRotationsMax,
+    nbCamionsRotationsMin,
     nbCamionsFluxContinu,
     intervalleArrivee,
 

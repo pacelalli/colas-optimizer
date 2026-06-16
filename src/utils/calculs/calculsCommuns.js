@@ -89,12 +89,15 @@ export function getTypeCamion(typeId) {
 // ─── TEMPS DE TRAJET ─────────────────────────────────────────────────────────
 
 // Déclaration de la fonction avec 4 entrées, chantier de jour par défaut et coefficient de vitesse camion à 1 par défaut
-export function getTempsTrajet(centraleId, zoneId, isNuit = false, coeffCamion = 1.0) {
-  const tempsBase = distances[centraleId]?.[zoneId]; {/* Récupère le temps de trajet de base dans distances.json */}
-  if (tempsBase === null || tempsBase === undefined) return null; {/* Si pas de données → retourne null */}
-  // ? valeur_si_vrai : valeur_si_faux
-  const coeffTrafic = isNuit
-    ? distances.meta.coeff_nuit
-    : distances.meta.coeff_jour;
-  return Math.round(tempsBase * coeffTrafic * coeffCamion); {/* Applique le coefficient de vitesse du type de camion */}
+export function getTempsTrajet(centraleId, zoneId, isNuit = false, type = null, typeTrajet = "urbain") {
+  const tempsBase = distances[centraleId]?.[zoneId];
+  if (tempsBase === null || tempsBase === undefined) return null;
+  const coeffTrafic = isNuit ? distances.meta.coeff_nuit : distances.meta.coeff_jour;
+  
+  // Coefficient selon type de trajet
+  const coeffCamion = typeTrajet === "montagne"  ? (type?.coeff_vitesse_montagne ?? 1.25)
+                    : typeTrajet === "autoroute" ? (type?.coeff_vitesse_autoroute ?? 1.15)
+                    : (type?.coeff_vitesse_urbain ?? 1.20);
+
+  return Math.round(tempsBase * coeffTrafic * coeffCamion);
 }
