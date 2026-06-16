@@ -392,3 +392,253 @@
 }
 }
 
+/* ─── CALENDRIER ─────────────────────────────────────────────────────────── */
+
+.cal-container {
+  background: var(--colas-blanc);
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.cal-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.cal-titre {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--colas-noir);
+  text-transform: capitalize;
+}
+
+.cal-nav-btn {
+  background: none;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 4px 12px;
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--colas-noir);
+  transition: all 0.15s;
+}
+
+.cal-nav-btn:hover {
+  background: var(--colas-jaune);
+  border-color: var(--colas-jaune);
+}
+
+.cal-grille {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.cal-entete {
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--colas-gris);
+  padding: 4px 0;
+  text-transform: uppercase;
+}
+
+.cal-case {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  position: relative;
+  cursor: default;
+  font-size: 0.85rem;
+  color: var(--colas-gris);
+  transition: all 0.15s;
+}
+
+.cal-case.vide {
+  background: none;
+}
+
+.cal-case.avec-chantiers {
+  background: #fff8e1;
+  border: 1.5px solid var(--colas-jaune);
+  cursor: pointer;
+  color: var(--colas-noir);
+  font-weight: 600;
+}
+
+.cal-case.avec-chantiers:hover {
+  background: var(--colas-jaune);
+}
+
+.cal-case.selectionnee {
+  background: var(--colas-jaune) !important;
+  color: var(--colas-noir);
+}
+
+.cal-case.aujourd-hui .cal-num {
+  text-decoration: underline;
+}
+
+.cal-num {
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.cal-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: var(--colas-noir);
+  color: var(--colas-jaune);
+  border-radius: 10px;
+  padding: 1px 5px;
+  margin-top: 2px;
+}
+
+/* ─── PLANNING JOUR ──────────────────────────────────────────────────────── */
+
+.planning-jour {
+  margin-top: 0.5rem;
+}
+
+.planning-jour-titre {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--colas-noir);
+  margin-bottom: 1rem;
+  text-transform: capitalize;
+}
+
+.planning-colonnes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.planning-colonne {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.planning-colonne-titre {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--colas-gris);
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.planning-vide {
+  font-size: 0.82rem;
+  color: #bbb;
+  font-style: italic;
+  padding: 0.5rem 0;
+}
+
+/* ─── CARTE CHANTIER ─────────────────────────────────────────────────────── */
+
+.planning-carte {
+  border: 1px solid #e0e0e0;
+  border-left: 3px solid var(--colas-jaune);
+  border-radius: 6px;
+  overflow: hidden;
+  transition: box-shadow 0.15s;
+}
+
+.planning-carte.ouverte {
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+
+.planning-carte-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  background: white;
+  transition: background 0.15s;
+}
+
+.planning-carte-header:hover {
+  background: #fafafa;
+}
+
+.planning-carte-nom {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--colas-noir);
+}
+
+.planning-carte-meta {
+  font-size: 0.78rem;
+  color: var(--colas-gris);
+  margin-top: 2px;
+}
+
+.planning-carte-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.planning-carte-camions {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--colas-noir);
+  background: #f0f0f0;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.planning-carte-chevron {
+  font-size: 0.7rem;
+  color: var(--colas-gris);
+}
+
+/* ─── DÉTAIL CHANTIER ────────────────────────────────────────────────────── */
+
+.planning-carte-detail {
+  padding: 0.75rem 1rem 1rem;
+  border-top: 1px solid #f0f0f0;
+  background: #fafafa;
+}
+
+.detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.detail-ligne {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.82rem;
+  color: var(--colas-noir);
+}
+
+.detail-label {
+  font-weight: 600;
+  color: var(--colas-gris);
+  min-width: 80px;
+}
+
+.journal-calcul-titre {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--colas-jaune);
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}

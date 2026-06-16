@@ -36,7 +36,7 @@ function App() {
           className={onglet === "recap" ? "actif" : ""}
           onClick={() => setOnglet("recap")}
         >
-          Récap. journalier {chantiers.length > 0 && `(${chantiers.length})`}
+          Planning chantiers {chantiers.length > 0 && `(${chantiers.length})`}
         </button>
         <button
           className={onglet === "planning" ? "actif" : ""}

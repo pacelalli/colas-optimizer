@@ -17,8 +17,18 @@ const ctx = [
   "SARRAZY Thomas",
 ];
 
+// Types de chantiers disponibles
+const typesChantiers = [
+  { id: "enrobes",      label: "🟡 Apport d'enrobés",         calcul: true  },
+  { id: "beton",        label: "⚪ Apport de béton",           calcul: false },
+  { id: "terrassement", label: "🟤 Terrassement / Remblai",    calcul: false },
+  { id: "fraisat",      label: "⚫ Rabotage (Fraisat)",        calcul: false },
+  { id: "multi_flux",   label: "🔀 Chantier multi-flux",       calcul: false },
+];
+
 function FormulaireChantier({ onAjoutChantier }) {
   const [form, setForm] = useState({
+    typeChantier: "",       //Type de chantier choisi par le CdT 
     conducteur: "",
     date: "",
     chantierNuit: false,
@@ -59,20 +69,16 @@ function FormulaireChantier({ onAjoutChantier }) {
 
   {/* Permet de valider les besoins, et vérifier la bonne saisie des informations */}
   const handleValider = () => {
-    if (!form.conducteur || !form.date || !form.nomChantier || !form.tonnage) { {/* Si une ou plusieurs de ces values sont vides -->*/}
-      alert("Merci de remplir tous les champs obligatoires (*)"); {/* Alors retourner un message d'alerte */}
+    if (!form.typeChantier) {
+      alert("Merci de sélectionner un type de chantier");
       return;
     }
-    if (!form.typeEnrobe) {
-      alert("Merci de sélectionner une formule d'enrobé");
+    if (!form.conducteur || !form.date || !form.nomChantier || !form.tonnage) {
+      alert("Merci de remplir tous les champs obligatoires (*)");
       return;
     }
     if (!form.heureDebut || !form.heureFin) {
       alert("Merci de renseigner les heures de début et de fin");
-      return;
-    }
-    if (form.centraleImposee && !form.centrale) {
-      alert("Merci de sélectionner une centrale (centrale imposée)");
       return;
     }
     if (!form.lat || !form.lng) {
@@ -80,29 +86,45 @@ function FormulaireChantier({ onAjoutChantier }) {
       return;
     }
 
-    {/*Calcul des options comparatives */}
-    const options = comparerCentrales({
-      ...form,
-      formule: form.typeEnrobe,
-    }, 0);
+    {/* Cas spécifique enrobés : comparatif centrales */}
+    if (form.typeChantier === "enrobes") {
+      if (!form.typeEnrobe) {
+        alert("Merci de sélectionner une formule d'enrobé");
+        return;
+      }
+      if (form.centraleImposee && !form.centrale) {
+        alert("Merci de sélectionner une centrale (centrale imposée)");
+        return;
+      }
 
-    if (options.length === 0) {
-      alert("Aucune centrale ne produit cette formule. Vérifiez votre sélection.");
+      const options = comparerCentrales({
+        ...form,
+        formule: form.typeEnrobe,
+      }, 0);
+
+      if (options.length === 0) {
+        alert("Aucune centrale ne produit cette formule. Vérifiez votre sélection.");
+        return;
+      }
+
+      const initColas = {};
+      options.forEach((o) => { initColas[o.centraleId] = 0; });
+      setNbColasParOption(initColas);
+      setOptionsComparatif(options);
+      setEtape("comparatif");
       return;
     }
 
-    {/*Initialiser le slider à 0 camions Colas pour chaque option */}
-    const initColas = {};
-    options.forEach((o) => { initColas[o.centraleId] = 0; });
-    setNbColasParOption(initColas);
-    setOptionsComparatif(options);
-    setEtape("comparatif");
+    {/* Autres types de chantiers : validation directe (pas de comparatif centrale) */}
+    const chantier = { ...form, id: Date.now() };
+    setResultat(chantier);
+    if (onAjoutChantier) onAjoutChantier(chantier);
+    setEtape("confirme");
   };
 
   {/*Recalculer une option quand le slider change */}
   const handleSliderChange = (centraleId, nbColas) => {
     setNbColasParOption((prev) => ({ ...prev, [centraleId]: parseInt(nbColas) }));
-    {/*Recalculer les options avec le nouveau nb de camions Colas */}
     const options = comparerCentrales({
       ...form,
       formule: form.typeEnrobe,
@@ -141,7 +163,6 @@ function FormulaireChantier({ onAjoutChantier }) {
         <div className="comparatif-liste">
           {optionsComparatif.map((option) => {
             const nbColas = nbColasParOption[option.centraleId] ?? 0;
-            {/*Recalculer le coût en temps réel selon le slider */}
             const nuit = form.chantierNuit ?? false;
             const typeCamion = camions.find(t => t.id === form.typeCamion);
             const nbLocatiers = option.nbCamions - nbColas;
@@ -226,14 +247,23 @@ function FormulaireChantier({ onAjoutChantier }) {
           <p>📅 Date : <strong>{resultat.date}</strong></p>
           <p>👷 CdT : <strong>{resultat.conducteur}</strong></p>
           <p>📍 Chantier : <strong>{resultat.nomChantier}</strong></p>
-          <p>🏭 Centrale : <strong>{centrales.find(c => c.id === resultat.centrale)?.nom}</strong></p>
-          <p>📦 Tonnage : <strong>{resultat.tonnage}t</strong> de <strong>{formules.find(f => f.id === resultat.typeEnrobe)?.nom}</strong></p>
+          <p>🏷️ Type : <strong>{typesChantiers.find(t => t.id === resultat.typeChantier)?.label}</strong></p>
+          {resultat.typeChantier === "enrobes" && (
+            <>
+              <p>🏭 Centrale : <strong>{centrales.find(c => c.id === resultat.centrale)?.nom}</strong></p>
+              <p>📦 Tonnage : <strong>{resultat.tonnage}t</strong> de <strong>{formules.find(f => f.id === resultat.typeEnrobe)?.nom}</strong></p>
+              <p>💰 Prix retenu : <strong>{resultat.prixTonneRetenu}€/t</strong> — Total : <strong>{resultat.coutTotalRetenu?.toLocaleString("fr-FR")}€</strong></p>
+            </>
+          )}
+          {resultat.typeChantier !== "enrobes" && (
+            <p>📦 Tonnage : <strong>{resultat.tonnage}t</strong></p>
+          )}
           <p>🚛 Camions : <strong>{resultat.typeCamion}</strong></p>
-          <p>💰 Prix retenu : <strong>{resultat.prixTonneRetenu}€/t</strong> — Total : <strong>{resultat.coutTotalRetenu?.toLocaleString("fr-FR")}€</strong></p>
         </div>
         <button className="btn-valider" onClick={() => {
           setEtape("saisie");
           setForm({
+            typeChantier: "",
             conducteur: "",
             date: "",
             chantierNuit: false,
@@ -255,191 +285,243 @@ function FormulaireChantier({ onAjoutChantier }) {
     );
   }
 
-  {/*  ETAPE SAISIE  */}
+  {/*─── ETAPE SAISIE ───────────────────────────────────────────────────────── */}
   return (
     <div className="formulaire"> {/*Ensemble de la page HTML*/}
       <h2>SAISIE DES BESOINS</h2> {/*Création d'un sous titre de saisie*/}
 
-      <div className="form-section"> {/*Boite de type form-section (pour personnalisation dans CSS)*/}
-        <h3>Identification</h3> {/*Sous titre h3*/}
-
-        <div className="form-row"> {/*Boite de type form-row*/}
-          <label>Conducteur de travaux * </label> {/*Label = balise de texte*/}
-          <select name="conducteur" value={form.conducteur} onChange={handleChange}> {/*Select = création liste déroulante */}
-            <option value="">-- Sélectionner --</option> {/* Vide et "Sélectionner" par défaut */}
-            {ctx.map((c) => (  
-              <option key={c} value={c}>{c}</option>
-            ))} {/* Permet de boucler sur le tableau const ctx pour faire un choix */}
-          </select>
+      {/*─── TYPE DE CHANTIER ── Tout en haut car conditionne toute la suite ── */}
+      <div className="form-section">
+        <h3>Type de chantier *</h3>
+        <div className="toggle-group" style={{ flexWrap: "wrap" }}>
+          {typesChantiers.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              className={form.typeChantier === t.id ? "toggle-btn actif" : "toggle-btn"}
+              onClick={() => setForm({ ...form, typeChantier: t.id })}
+            >
+              {t.label}
+            </button>
+          ))}
         </div>
-
-        <div className="form-row">
-          <label>Date du besoin * </label>
-          <input type="date" name="date" value={form.date} onChange={handleChange} />
-        </div>
+        {!form.typeChantier && (
+          <p className="info-centrale">Sélectionnez un type de chantier pour continuer</p>
+        )}
+        {form.typeChantier && form.typeChantier !== "enrobes" && (
+          <p className="info-centrale">⚠️ Ce type de chantier est en cours de développement — seul le calcul de base sera effectué</p>
+        )}
       </div>
 
-      <div className="form-section">
-        <h3>Chantier</h3>
+      {/*─── SUITE DU FORMULAIRE (visible uniquement si type choisi) ─────────── */}
+      {form.typeChantier && (
+        <>
+          <div className="form-section"> {/*Boite de type form-section (pour personnalisation dans CSS)*/}
+            <h3>Identification</h3> {/*Sous titre h3*/}
 
-        <div className="form-row">
-          <label>Nom du chantier * </label>
-          <input
-            type="text"
-            name="nomChantier"
-            value={form.nomChantier}
-            onChange={handleChange}
-            placeholder="Ex: RD6007 - Vallauris"
-          />
-        </div>
+            <div className="form-row"> {/*Boite de type form-row*/}
+              <label>Conducteur de travaux * </label> {/*Label = balise de texte*/}
+              <select name="conducteur" value={form.conducteur} onChange={handleChange}> {/*Select = création liste déroulante */}
+                <option value="">-- Sélectionner --</option>
+                {ctx.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
 
-        <div className="form-row">
-          <label>Adresse </label>
-          <input
-            type="text"
-            name="adresseChantier"
-            value={form.adresseChantier}
-            onChange={handleChange}
-            placeholder="Ex: Av. de la Liberté"
-          />
-        </div>
+            <div className="form-row">
+              <label>Date du besoin * </label>
+              <input type="date" name="date" value={form.date} onChange={handleChange} />
+            </div>
+          </div>
 
-        <div className="form-row">
-          <label>Coordonnées GPS (Google Maps) * </label>
-          <input
-            type="text"
-            name="coordonnees"
-            value={form.coordonnees}
-            onChange={handleChange}
-            placeholder="Ex: 43.6580, 7.1220"
-          />
-          {zoneDetectee && (
-            <div className="info-centrale">
-              📍 Zone détectée : <strong>{zoneDetectee.commune}</strong> — {zoneDetectee.secteur}
-              <span style={{ float: "right", opacity: 0.6 }}>à {zoneDetectee.distanceKm} km</span>
+          <div className="form-section">
+            <h3>Chantier</h3>
+
+            <div className="form-row">
+              <label>Nom du chantier * </label>
+              <input
+                type="text"
+                name="nomChantier"
+                value={form.nomChantier}
+                onChange={handleChange}
+                placeholder="Ex: RD6007 - Vallauris"
+              />
+            </div>
+
+            <div className="form-row">
+              <label>Adresse </label>
+              <input
+                type="text"
+                name="adresseChantier"
+                value={form.adresseChantier}
+                onChange={handleChange}
+                placeholder="Ex: Av. de la Liberté"
+              />
+            </div>
+
+            <div className="form-row">
+              <label>Coordonnées GPS (Google Maps) * </label>
+              <input
+                type="text"
+                name="coordonnees"
+                value={form.coordonnees}
+                onChange={handleChange}
+                placeholder="Ex: 43.6580, 7.1220"
+              />
+              {zoneDetectee && (
+                <div className="info-centrale">
+                  📍 Zone détectée : <strong>{zoneDetectee.commune}</strong> — {zoneDetectee.secteur}
+                  <span style={{ float: "right", opacity: 0.6 }}>à {zoneDetectee.distanceKm} km</span>
+                </div>
+              )}
+            </div>
+
+            <div className="form-row">
+              <label>Type de chantier</label>
+              <div className="toggle-group">
+                <button
+                  type="button"
+                  className={!form.chantierNuit ? "toggle-btn actif" : "toggle-btn"}
+                  onClick={() => setForm({ ...form, chantierNuit: false })}
+                >
+                  ☀️ Chantier de jour
+                </button>
+                <button
+                  type="button"
+                  className={form.chantierNuit ? "toggle-btn actif" : "toggle-btn"}
+                  onClick={() => setForm({ ...form, chantierNuit: true })}
+                >
+                  🌙 Chantier de nuit
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/*─── SECTION SPÉCIFIQUE ENROBÉS ─────────────────────────────────── */}
+          {form.typeChantier === "enrobes" && (
+            <div className="form-section">
+              <h3>Commande enrobés</h3>
+
+              <div className="form-row">
+                <label>Formule * </label> {/*Formule remontée avant centrale car toujours obligatoire*/}
+                <select name="typeEnrobe" value={form.typeEnrobe} onChange={handleChange}>
+                  <option value="">-- Sélectionner --</option>
+                  {formules.map((f) => (
+                    <option key={f.id} value={f.id}>{f.nom}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-row">
+                <label>Tonnage nécessaire (t) * </label>
+                <input type="number" name="tonnage" value={form.tonnage} onChange={handleChange} placeholder="Ex: 80" min="1" />
+              </div>
+
+              <div className="form-row">
+                <label>Heure de début </label>
+                <input type="time" name="heureDebut" value={form.heureDebut} onChange={handleChange} />
+              </div>
+
+              <div className="form-row">
+                <label>Heure de fin </label>
+                <input type="time" name="heureFin" value={form.heureFin} onChange={handleChange} />
+              </div>
+
+              <div className="form-row">
+                <label>Contrainte centrale</label>
+                <div className="toggle-group">
+                  <button
+                    type="button"
+                    className={form.centraleImposee ? "toggle-btn actif" : "toggle-btn"}
+                    onClick={() => setForm({ ...form, centraleImposee: true })}
+                  >
+                    🔒 Centrale imposée
+                  </button>
+                  <button
+                    type="button"
+                    className={!form.centraleImposee ? "toggle-btn actif" : "toggle-btn"}
+                    onClick={() => setForm({ ...form, centraleImposee: false })}
+                  >
+                    💡 Centrale suggérée
+                  </button>
+                </div>
+                {form.centraleImposee
+                  ? <p className="info-centrale">⚠️ L'algorithme respectera cette centrale (formule spécifique)</p>
+                  : <p className="info-centrale">✅ L'algorithme optimisera la centrale via le tableau comparatif</p>
+                }
+              </div>
+
+              {/* Select centrale visible uniquement si centrale imposée */}
+              {form.centraleImposee && (
+                <div className="form-row">
+                  <label>Centrale * </label>
+                  <select name="centrale" value={form.centrale} onChange={handleChange}>
+                    <option value="">-- Sélectionner --</option>
+                    {centrales.map((c) => (
+                      <option key={c.id} value={c.id}>{c.nom} — {c.localisation}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {centraleTrouvee && (
+                <div className="info-centrale">
+                  📍 {centraleTrouvee.adresse || centraleTrouvee.localisation} &nbsp;|&nbsp;
+                  Fraisat : {centraleTrouvee.fraisat === true ? "✅ Oui" : centraleTrouvee.fraisat === false ? "❌ Non" : "❓ Non renseigné"}
+                </div>
+              )}
             </div>
           )}
-        </div>
 
-        <div className="form-row">
-          <label>Type de chantier</label>
-          <div className="toggle-group">
-            <button
-              type="button"
-              className={!form.chantierNuit ? "toggle-btn actif" : "toggle-btn"}
-              onClick={() => setForm({ ...form, chantierNuit: false })}
-            >
-              ☀️ Chantier de jour
-            </button>
-            <button
-              type="button"
-              className={form.chantierNuit ? "toggle-btn actif" : "toggle-btn"}
-              onClick={() => setForm({ ...form, chantierNuit: true })}
-            >
-              🌙 Chantier de nuit
-            </button>
+          {/*─── SECTION COMMUNE TOUS TYPES (tonnage + horaires si pas enrobés) ─ */}
+          {form.typeChantier !== "enrobes" && (
+            <div className="form-section">
+              <h3>Besoin</h3>
+
+              <div className="form-row">
+                <label>Tonnage nécessaire (t) * </label>
+                <input type="number" name="tonnage" value={form.tonnage} onChange={handleChange} placeholder="Ex: 80" min="1" />
+              </div>
+
+              <div className="form-row">
+                <label>Heure de début </label>
+                <input type="time" name="heureDebut" value={form.heureDebut} onChange={handleChange} />
+              </div>
+
+              <div className="form-row">
+                <label>Heure de fin </label>
+                <input type="time" name="heureFin" value={form.heureFin} onChange={handleChange} />
+              </div>
+            </div>
+          )}
+
+          <div className="form-section">
+            <h3>Camions </h3>
+            <div className="form-row">
+              <label>Type de camion souhaité </label>
+              <select name="typeCamion" value={form.typeCamion} onChange={handleChange}>
+                {camions.map((c) => (
+                  <option key={c.id} value={c.id}>{c.label}</option>
+                ))}
+              </select>
+            </div>
+
+            {form.tonnage && (
+              <div className="info-calcul">
+                🚛 Rotations nécessaires : <strong>
+                  {Math.ceil(parseFloat(form.tonnage) / (camions.find(t => t.id === form.typeCamion)?.tonnage_utile ?? 1))}
+                </strong> au total
+                — l'algorithme calculera le nombre de camions optimal
+              </div>
+            )}
           </div>
-        </div>
-      </div>
 
-      <div className="form-section">
-        <h3>Commande enrobés</h3>
-
-        <div className="form-row">
-          <label>Formule * </label> {/*Formule remontée avant centrale car toujours obligatoire*/}
-          <select name="typeEnrobe" value={form.typeEnrobe} onChange={handleChange}>
-            <option value="">-- Sélectionner --</option>
-            {formules.map((f) => (
-              <option key={f.id} value={f.id}>{f.nom}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="form-row">
-          <label>Tonnage nécessaire (t) * </label>
-          <input type="number" name="tonnage" value={form.tonnage} onChange={handleChange} placeholder="Ex: 80" min="1" />
-        </div>
-
-        <div className="form-row">
-          <label>Heure de début </label>
-          <input type="time" name="heureDebut" value={form.heureDebut} onChange={handleChange} />
-        </div>
-
-        <div className="form-row">
-          <label>Heure de fin </label>
-          <input type="time" name="heureFin" value={form.heureFin} onChange={handleChange} />
-        </div>
-
-        <div className="form-row">
-          <label>Contrainte centrale</label>
-          <div className="toggle-group">
-            <button
-              type="button"
-              className={form.centraleImposee ? "toggle-btn actif" : "toggle-btn"}
-              onClick={() => setForm({ ...form, centraleImposee: true })}
-            >
-              🔒 Centrale imposée
-            </button>
-            <button
-              type="button"
-              className={!form.centraleImposee ? "toggle-btn actif" : "toggle-btn"}
-              onClick={() => setForm({ ...form, centraleImposee: false })}
-            >
-              💡 Centrale suggérée
-            </button>
-          </div>
-          {form.centraleImposee
-            ? <p className="info-centrale">⚠️ L'algorithme respectera cette centrale (formule spécifique)</p>
-            : <p className="info-centrale">✅ L'algorithme optimisera la centrale via le tableau comparatif</p>
-          }
-        </div>
-
-        {/* Select centrale visible uniquement si centrale imposée */}
-        {form.centraleImposee && (
-          <div className="form-row">
-            <label>Centrale * </label>
-            <select name="centrale" value={form.centrale} onChange={handleChange}>
-              <option value="">-- Sélectionner --</option>
-              {centrales.map((c) => (
-                <option key={c.id} value={c.id}>{c.nom} — {c.localisation}</option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {centraleTrouvee && (
-          <div className="info-centrale">
-            📍 {centraleTrouvee.adresse || centraleTrouvee.localisation} &nbsp;|&nbsp;
-            Fraisat : {centraleTrouvee.fraisat === true ? "✅ Oui" : centraleTrouvee.fraisat === false ? "❌ Non" : "❓ Non renseigné"}
-          </div>
-        )}
-      </div>
-
-      <div className="form-section">
-        <h3>Camions </h3>
-        <div className="form-row">
-          <label>Type de camion souhaité </label>
-          <select name="typeCamion" value={form.typeCamion} onChange={handleChange}>
-            {camions.map((c) => (
-              <option key={c.id} value={c.id}>{c.label}</option>
-            ))}
-          </select>
-        </div>
-
-        {form.tonnage && (
-          <div className="info-calcul">
-            🚛 Rotations nécessaires : <strong>
-              {Math.ceil(parseFloat(form.tonnage) / (camions.find(t => t.id === form.typeCamion)?.tonnage_utile ?? 1))}
-            </strong> au total
-            — l'algorithme calculera le nombre de camions optimal
-          </div>
-        )}
-      </div>
-
-      <button className="btn-valider" onClick={handleValider}>
-        ➡️ Voir les options de centrale
-      </button>
-
+          <button className="btn-valider" onClick={handleValider}>
+            {form.typeChantier === "enrobes" ? "➡️ Voir les options de centrale" : "✅ Valider le besoin"}
+          </button>
+        </>
+      )}
     </div>
   );
 }
