@@ -166,10 +166,9 @@ export function calculerRotationsEnrobes(chantier) {
     : Math.ceil(rotationsTotales / entierInf);         // ex: ceil(35/2.3) = 18
 
   // Nombre de camions nécessaires pour flux continu (alimenter le finisseur sans interruption)
-  const nbCamionsFluxContinu = Math.ceil(tempsCycle / intervalleArrivee);
+  // const nbCamionsFluxContinu = Math.ceil(tempsCycle / intervalleArrivee);
 
-  // On prend le max des deux contraintes
-  const nbCamions = Math.max(nbCamionsTonnage, nbCamionsFluxContinu);
+  const nbCamions = nbCamionsTonnage;
 
   // Répartition entre camions qui font rotationsMax et ceux qui font rotationsMin
   const excedentRotations = (nbCamions * entierInf) - rotationsTotales;
@@ -195,7 +194,6 @@ console.log("Temps cycle (min):", tempsCycle);
 console.log("Temps disponible (min):", tempsDisponible);
 console.log("Rotations/camion:", rotationsParCamion);
 console.log("Nb camions tonnage:", nbCamionsTonnage);
-console.log("Nb camions flux continu:", nbCamionsFluxContinu);
 console.log("→ Nb camions final:", nbCamions);
 console.log("========================");
 
@@ -232,7 +230,6 @@ console.log("========================");
     nbCamionsTonnage,
     nbCamionsRotationsMax,
     nbCamionsRotationsMin,
-    nbCamionsFluxContinu,
     intervalleArrivee,
 
     // Horaires

@@ -285,3 +285,51 @@ export function optimiserJournee(chantiersJournee) {
     renforts,
   };
 }
+
+export function extrairePlanningParCamion(plannings) {
+  // plannings = tableau de { camionId, immatriculation, type, proprietaire, 
+  //                          chantier, centraleId, rotations, libreA }
+
+  const parCamion = {};
+
+  for (const p of plannings) {
+    if (!parCamion[p.camionId]) {
+      parCamion[p.camionId] = {
+        camionId:        p.camionId,
+        immatriculation: p.immatriculation,
+        type:            p.type,
+        proprietaire:    p.proprietaire,
+        missions:        [], // liste de toutes les rotations, tous chantiers confondus
+        libreA:          p.libreA,
+      };
+    }
+
+    // Ajouter les rotations de ce chantier avec le nom du chantier et la centrale
+    for (const r of p.rotations) {
+      parCamion[p.camionId].missions.push({
+        ...r,
+        chantier:   p.chantier,
+        centraleId: p.centraleId,
+      });
+    }
+
+    // Mettre à jour heure de fin (la plus tardive)
+    parCamion[p.camionId].libreA = p.libreA;
+  }
+
+  // Trier les missions de chaque camion par heure de départ
+  return Object.values(parCamion).map(c => ({
+    ...c,
+    missions: c.missions.sort((a, b) => {
+      const toMin = h => {
+        const [hh, mm] = h.replace("h", ":").split(":").map(Number);
+        return hh * 60 + mm;
+      };
+      const mA = toMin(a.depart_centrale);
+      const mB = toMin(b.depart_centrale);
+      // Gestion passage minuit : si écart > 12h, inverser
+      if (Math.abs(mA - mB) > 720) return mA > mB ? -1 : 1;
+      return mA - mB;
+    }),
+  }));
+}

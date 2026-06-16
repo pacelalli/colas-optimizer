@@ -6,6 +6,7 @@ import "./App.css";
 import Carte from "./components/Carte";
 import FormulaireChantier from "./components/FormulaireChantier";
 import RecapJournalier from "./components/RecapJournalier";
+import PlanningCamions from "./components/PlanningCamions";
 
 function App() {
   const [onglet, setOnglet] = useState("accueil");
@@ -71,7 +72,7 @@ function App() {
         {onglet === "recap" && (
           <RecapJournalier chantiers={chantiers} />
         )}
-        {onglet === "planning" && <p>Planning Gantt — à venir</p>}
+        {onglet === "planning" && <PlanningCamions chantiers={chantiers} />}
         {onglet === "carte" && <Carte chantiers={chantiers} />}
       </main>
     </div>

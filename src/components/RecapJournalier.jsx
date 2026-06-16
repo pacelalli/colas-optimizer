@@ -351,7 +351,6 @@ function CarteChantier({ chantier, estOuvert, onClic }) {
                 <div className="journal-etape-ligne">Rotations nécessaires : ⌈{chantier.tonnage} ÷ {calc.capacite}⌉ = {Math.ceil(parseFloat(chantier.tonnage) / calc.capacite)}</div>
                 <div className="journal-etape-ligne">Rotations/camion : {calc.rotationsParCamion} ({calc.rotationsExactes} exactes)</div>
                 <div className="journal-etape-ligne">Camions tonnage : {calc.nbCamionsTonnage}</div>
-                <div className="journal-etape-ligne">Camions flux continu : {calc.nbCamionsFluxContinu}</div>
                 <div className="journal-etape-resultat">→ {calc.nbCamions} camion(s) × {calc.rotationsParCamion} rotations</div>
                 <div style={{ fontSize: "0.82rem", color: "#90EE90", marginTop: "0.4rem" }}>
                   ✅ {calc.nbCamions * calc.rotationsParCamion * calc.capacite}t capacité (objectif {chantier.tonnage}t)
