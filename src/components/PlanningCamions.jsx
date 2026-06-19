@@ -213,6 +213,9 @@ function PlanningCamions({ chantiers }) {
 function CarteCamion({ camion, estOuvert, onClic }) {
   const typeCamion = camions.find(t => t.id === camion.type);
 
+  // Tonnage total livré par ce camion (somme des tonnages de chaque rotation)
+  const tonnageTotal = camion.missions.reduce((acc, m) => acc + (m.tonnage_rotation ?? 0), 0);
+
   return (
     <div className={`planning-carte ${estOuvert ? "ouverte" : ""}`}
          style={{ borderLeftColor: camion.proprietaire === "Colas" ? "var(--colas-jaune)" : "#E30613" }}>
@@ -225,6 +228,7 @@ function CarteCamion({ camion, estOuvert, onClic }) {
           </div>
           <div className="planning-carte-meta">
             {typeCamion?.label ?? camion.type} · {camion.missions.length} rotation{camion.missions.length > 1 ? "s" : ""}
+            {tonnageTotal > 0 && ` · ${tonnageTotal}t livrées`}
           </div>
         </div>
         <div className="planning-carte-right">
@@ -281,6 +285,25 @@ function CarteCamion({ camion, estOuvert, onClic }) {
                       <span style={{ color: "var(--colas-gris)" }}>📍 {m.chantier}</span>
                     </div>
 
+                    {/* Décompte tonnage de la rotation */}
+                    {m.tonnage_rotation != null && (
+                      <div style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        marginBottom: "4px",
+                        fontSize: "0.78rem"
+                      }}>
+                        <span style={{ color: "#2e7d32", fontWeight: 600 }}>
+                          +{m.tonnage_rotation}t
+                        </span>
+                        {m.tonnage_cumule_global != null && (
+                          <span style={{ color: "var(--colas-gris)" }}>
+                            cumul chantier : <strong>{m.tonnage_cumule_global}t</strong>
+                          </span>
+                        )}
+                      </div>
+                    )}
+
                     {/* Centrale */}
                     <div style={{ color: "var(--colas-gris)", marginBottom: "4px" }}>
                       🏭 {centrale?.nom ?? m.centraleId}
@@ -318,6 +341,20 @@ function CarteCamion({ camion, estOuvert, onClic }) {
                 </React.Fragment>
               );
             })}
+
+            {/* Total livré par ce camion */}
+            <div style={{
+              padding: "0.6rem 0 0",
+              marginTop: "0.4rem",
+              borderTop: "2px solid var(--colas-jaune)",
+              fontSize: "0.85rem",
+              display: "flex",
+              justifyContent: "space-between",
+              fontWeight: 600
+            }}>
+              <span>Total livré</span>
+              <span style={{ color: "#2e7d32" }}>{tonnageTotal}t</span>
+            </div>
           </div>
         </div>
       )}

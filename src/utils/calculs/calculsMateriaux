@@ -1,23 +1,22 @@
-// ─── CALCULS BÉTON ────────────────────────────────────────────────────────────
-// Saisie en m³ → conversion m³ × 2.5 = tonnes
+// ─── CALCULS APPORT MATÉRIAUX ──────────────────────────────────────────────────
+// Apport de GNT, grave, sable, ballast... — même logique que enrobés
 // Cycle : centrale → chargement → chantier → déchargement → centrale
-// Libre après : déchargement sur chantier (dernière rotation) comme enrobés
-import { heureEnMinutes, minutesEnHeure, getTypeCamion, getTempsTrajet } from "./calculsCommuns";
+// Libre après : déchargement sur chantier (dernière rotation)
+import { haversine, heureEnMinutes, minutesEnHeure, getTypeCamion, getTempsTrajet } from "./calculsCommuns";
+import centrales from "../../data/centrales.json";
 
-export function calculerRotationsBeton(chantier) {
+export function calculerRotationsMateriau(chantier) {
   const type = getTypeCamion(chantier.typeCamion);
   if (!type) return null;
-  const DENSITE_BETON = 2.5;
-  const volumeM3 = parseFloat(chantier.volumeM3 ?? chantier.tonnage);
-  const tonnage = volumeM3 * DENSITE_BETON;
+  const tonnage = parseFloat(chantier.tonnage);
   const capacite = type.tonnage_utile;
-  const capaciteM3 = Math.floor(capacite / DENSITE_BETON * 10) / 10;
   const nuit = chantier.chantierNuit ?? false;
   const centraleId = chantier.centrale;
   if (!centraleId) return null;
   const tempsTrajet = getTempsTrajet(centraleId, chantier.zoneId, nuit, type, chantier.typeTrajet ?? "urbain");
   if (tempsTrajet === null) return null;
 
+  // Même logique que enrobés : départ centrale avant heureDebut chantier
   const heureArriveeChantier = heureEnMinutes(chantier.heureDebut) ?? 7 * 60;
   const heureDepartCentrale = heureArriveeChantier - tempsTrajet - type.temps_chargement_apport;
   let heureFinMin = heureEnMinutes(chantier.heureFin) ?? 17 * 60;
@@ -34,9 +33,9 @@ export function calculerRotationsBeton(chantier) {
   const rotationsRefSeuil = rotationsExactes >= entierInf + 0.5 ? entierInf + 1 : entierInf;
 
   const SEUIL_TEMPS_PROCHE = 15;
-  const MAX_ROTATIONS_BETON = 4;
+  const MAX_ROTATIONS_MATERIAU = 4;
   const rotationsParCamion = (chantier.rotationsIllimitees === true || tempsTrajet < SEUIL_TEMPS_PROCHE)
-    ? rotationsRefSeuil : Math.min(rotationsRefSeuil, MAX_ROTATIONS_BETON);
+    ? rotationsRefSeuil : Math.min(rotationsRefSeuil, MAX_ROTATIONS_MATERIAU);
 
   const proche = chantier.rotationsIllimitees === true || tempsTrajet < SEUIL_TEMPS_PROCHE;
   const nbCamionsTonnage = proche
@@ -59,9 +58,9 @@ export function calculerRotationsBeton(chantier) {
   const nbCamionsRotationsMin = nbCamions - nbCamionsRotationsMax;
 
   return {
-    chantierNom: chantier.nomChantier, typeChantier: "beton", centraleId,
-    volumeM3, tonnage, capacite, capaciteM3, typeCamion: type.label,
-    tempsTrajet, tempsCycle, tempsDisponible, pauseTotale,
+    chantierNom: chantier.nomChantier, typeChantier: "materiau",
+    typeMateriau: chantier.typeMateriau, centraleId, tonnage, capacite,
+    typeCamion: type.label, tempsTrajet, tempsCycle, tempsDisponible, pauseTotale,
     rotationsExactes: Math.round(rotationsExactes * 100) / 100,
     rotationsParCamion: rotationsParCamionFinal, rotationsTotales,
     nbCamions, nbCamionsTonnage,
@@ -72,7 +71,7 @@ export function calculerRotationsBeton(chantier) {
   };
 }
 
-export function genererPlanningCamionBeton(camion, chantier, calc, decalage = 0, compteur = null) {
+export function genererPlanningCamionMateriau(camion, chantier, calc, decalage = 0, compteur = null) {
   const rotations = [];
   const type = getTypeCamion(chantier.typeCamion);
 
@@ -93,10 +92,10 @@ export function genererPlanningCamionBeton(camion, chantier, calc, decalage = 0,
     const departCentrale  = cursor;
     const finChargement   = departCentrale + type.temps_chargement_apport;
     const arriveeChantier = finChargement + calc.tempsTrajet;
-    const finDecharge     = arriveeChantier + type.temps_sur_chantier_apport;
-    const retourCentrale  = finDecharge + calc.tempsTrajet;
+    const finDechargement = arriveeChantier + type.temps_sur_chantier_apport;
+    const retourCentrale  = finDechargement + calc.tempsTrajet;
 
-    dernierFinDechargement = finDecharge;
+    dernierFinDechargement = finDechargement;
 
     let tonnageCumuleGlobal = null;
     if (compteur) {
@@ -113,7 +112,7 @@ export function genererPlanningCamionBeton(camion, chantier, calc, decalage = 0,
       depart_centrale:  minutesEnHeure(departCentrale),
       fin_chargement:   minutesEnHeure(finChargement),
       arrivee_chantier: minutesEnHeure(arriveeChantier),
-      fin_dechargement: minutesEnHeure(finDecharge),
+      fin_dechargement: minutesEnHeure(finDechargement),
       retour_centrale:  minutesEnHeure(retourCentrale),
     });
 
@@ -121,11 +120,11 @@ export function genererPlanningCamionBeton(camion, chantier, calc, decalage = 0,
     if (cursor >= calc.heureFinMin) break;
   }
 
-  // Béton : libre après déchargement sur chantier (comme enrobés)
+  // Matériau : libre après déchargement sur chantier (comme enrobés)
   return {
     camionId: camion.id, immatriculation: camion.immatriculation ?? "Locatier",
     type: camion.type_vehicule ?? chantier.typeCamion, proprietaire: camion.proprietaire,
-    chantier: chantier.nomChantier, typeChantier: "beton", centraleId: calc.centraleId,
+    chantier: chantier.nomChantier, typeChantier: "materiau", centraleId: calc.centraleId,
     rotations,
     nbRotationsReelles: rotations.length,
     tonnageLivre: rotations.length * calc.capacite,

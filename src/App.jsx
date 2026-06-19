@@ -13,16 +13,23 @@ function App() {
   const [onglet, setOnglet] = useState("accueil");
   const [chantiers, setChantiers] = useState([]);
   const [afficherScenarios, setAfficherScenarios] = useState(false);
+  const [chantierAModifier, setChantierAModifier] = useState(null);
 
   const ajouterChantier = (chantier) => {
     setChantiers((prev) => [...prev, chantier]);
   };
 
-  const chargerScenario = (scenario) => {
-    setChantiers(scenario.chantiers);
-    setAfficherScenarios(false);
+  const modifierChantier = (chantierModifie) => {
+    setChantiers(prev => prev.map(c => c.id === chantierModifie.id ? chantierModifie : c));
+    setChantierAModifier(null);
     setOnglet("recap");
   };
+
+ const chargerScenario = (scenario) => {
+  setChantiers(prev => [...prev, ...scenario.chantiers]);
+  setAfficherScenarios(false);
+  setOnglet("recap");
+};
 
   return (
     <div className="app">
@@ -127,10 +134,20 @@ function App() {
           </div>
         )}
         {onglet === "saisie" && (
-          <FormulaireChantier onAjoutChantier={ajouterChantier} />
+          <FormulaireChantier
+            onAjoutChantier={ajouterChantier}
+            chantierAModifier={chantierAModifier}
+            onModifierChantier={modifierChantier}
+          />
         )}
         {onglet === "recap" && (
-          <RecapJournalier chantiers={chantiers} />
+          <RecapJournalier
+            chantiers={chantiers}
+            onModifier={(chantier) => {
+              setChantierAModifier(chantier);
+              setOnglet("saisie");
+            }}
+          />
         )}
         {onglet === "planning" && <PlanningCamions chantiers={chantiers} />}
         {onglet === "carte" && <Carte chantiers={chantiers} />}
