@@ -1,9 +1,10 @@
 // Import des fichiers base de données 
 import { useState } from "react";  {/*Import de la fonction useState du react */}
-import { trouverZone, comparerCentrales } from "../utils/optimisation";  {/*Import de plusieurs fonction du optimisation.js */}
+import { trouverZone, comparerCentrales, comparerCentralesFraisat } from "../utils/optimisation";  {/*Import de plusieurs fonction du optimisation.js */}
 import centrales from "../data/centrales.json";  {/*Import du fichier base de données centrales.json sous le nom : centrales */}
 import formules from "../data/formules_enrobes.json";  {/*Import du fichier base de données formules_enrobes.json sous le nom : formules */}
 import camions from "../data/type_camions.json"; {/*Import du fichier base de données types_camions.json sous le nom : camion */}
+import typesDeblais from "../data/types_deblais.json"; {/*Import des types de déblais */}
 
 // Conducteur de travaux
 const ctx = [
@@ -19,16 +20,16 @@ const ctx = [
 
 // Types de chantiers disponibles
 const typesChantiers = [
-  { id: "enrobes",      label: "🟡 Apport d'enrobés",         calcul: true  },
-  { id: "beton",        label: "⚪ Apport de béton",           calcul: false },
-  { id: "terrassement", label: "🟤 Terrassement / Remblai",    calcul: false },
-  { id: "fraisat",      label: "⚫ Rabotage (Fraisat)",        calcul: false },
-  { id: "multi_flux",   label: "🔀 Chantier multi-flux",       calcul: false },
+  { id: "enrobes",      label: "🟡 Mise en oeuvre enrobés" },
+  { id: "beton",        label: "⚪ Apport de béton sec" },
+  { id: "terrassement", label: "🟤 Terrassement / Remblai" },
+  { id: "fraisat",      label: "⚫ Rabotage de chaussée (Fraisat)" },
+  { id: "multi_flux",   label: "🔀 Chantier multi-flux" },
 ];
 
 function FormulaireChantier({ onAjoutChantier }) {
   const [form, setForm] = useState({
-    typeChantier: "",       //Type de chantier choisi par le CdT 
+    typeChantier: "",       // Type de chantier choisi par le CdT
     conducteur: "",
     date: "",
     chantierNuit: false,
@@ -41,11 +42,15 @@ function FormulaireChantier({ onAjoutChantier }) {
     centrale: "",
     centraleImposee: false,
     typeEnrobe: "",
+    typeDeblai: "",
     tonnage: "",
     heureDebut: "",
     heureFin: "",
     typeCamion: "8x4",
-    typeTrajet:"urbain",
+    typeTrajet: "urbain",
+    rotationsIllimitees: false,
+    nbCamionsImpose: "",
+    nbCamionsImposeActif: false,
   });
 
   const [etape, setEtape] = useState("saisie"); {/*Etape du formulaire : saisie ou comparatif */}
@@ -87,6 +92,61 @@ function FormulaireChantier({ onAjoutChantier }) {
       return;
     }
 
+    // Terrassement
+    if (form.typeChantier === "terrassement") {
+      if (!form.typeDeblai) {
+        alert("Merci de sélectionner un type de déblai");
+        return;
+      }
+      if (!form.centrale) {
+        alert("Merci de sélectionner une centrale de décharge");
+        return;
+      }
+      const chantier = { ...form, id: Date.now() };
+      setResultat(chantier);
+      if (onAjoutChantier) onAjoutChantier(chantier);
+      setEtape("confirme");
+      return;
+    }
+
+    // Béton
+    if (form.typeChantier === "beton") {
+      if (!form.centrale) {
+        alert("Merci de sélectionner une centrale béton");
+        return;
+      }
+      // Stocker le volume m³ et convertir en tonnes
+      const chantier = {
+        ...form,
+        id: Date.now(),
+        volumeM3: parseFloat(form.tonnage),
+        tonnage: parseFloat(form.tonnage) * 2.5, // conversion m³ → tonnes
+      };
+      setResultat(chantier);
+      if (onAjoutChantier) onAjoutChantier(chantier);
+      setEtape("confirme");
+      return;
+    }
+
+    // Fraisat
+    if (form.typeChantier === "fraisat") {
+      if (form.centraleImposee && !form.centrale) {
+        alert("Merci de sélectionner une centrale fraisat");
+        return;
+      }
+      const options = comparerCentralesFraisat({ ...form }, 0);
+      if (options.length === 0) {
+        alert("Aucune centrale disponible pour le fraisat dans cette zone.");
+        return;
+      }
+      const initColas = {};
+      options.forEach(o => { initColas[o.centraleId] = 0; });
+      setNbColasParOption(initColas);
+      setOptionsComparatif(options);
+      setEtape("comparatif");
+      return;
+    }
+
     {/* Cas spécifique enrobés : comparatif centrales */}
     if (form.typeChantier === "enrobes") {
       if (!form.typeEnrobe) {
@@ -97,17 +157,14 @@ function FormulaireChantier({ onAjoutChantier }) {
         alert("Merci de sélectionner une centrale (centrale imposée)");
         return;
       }
-
       const options = comparerCentrales({
         ...form,
         formule: form.typeEnrobe,
       }, 0);
-
       if (options.length === 0) {
         alert("Aucune centrale ne produit cette formule. Vérifiez votre sélection.");
         return;
       }
-
       const initColas = {};
       options.forEach((o) => { initColas[o.centraleId] = 0; });
       setNbColasParOption(initColas);
@@ -116,7 +173,7 @@ function FormulaireChantier({ onAjoutChantier }) {
       return;
     }
 
-    {/* Autres types de chantiers : validation directe (pas de comparatif centrale) */}
+    {/* Autres types de chantiers : validation directe */}
     const chantier = { ...form, id: Date.now() };
     setResultat(chantier);
     if (onAjoutChantier) onAjoutChantier(chantier);
@@ -126,10 +183,9 @@ function FormulaireChantier({ onAjoutChantier }) {
   {/*Recalculer une option quand le slider change */}
   const handleSliderChange = (centraleId, nbColas) => {
     setNbColasParOption((prev) => ({ ...prev, [centraleId]: parseInt(nbColas) }));
-    const options = comparerCentrales({
-      ...form,
-      formule: form.typeEnrobe,
-    }, parseInt(nbColas));
+    const options = form.typeChantier === "fraisat"
+      ? comparerCentralesFraisat({ ...form }, parseInt(nbColas))
+      : comparerCentrales({ ...form, formule: form.typeEnrobe }, parseInt(nbColas));
     setOptionsComparatif(options);
   };
 
@@ -140,9 +196,9 @@ function FormulaireChantier({ onAjoutChantier }) {
       id: Date.now(),
       centrale: option.centraleId,
       centraleImposee: true,
-      formule: option.formuleId,
+      formule: option.formuleId ?? null,
       nbCamionsColas: nbColasParOption[option.centraleId] ?? 0,
-      prixTonneRetenu: option.prixTonne,
+      prixTonneRetenu: option.prixTonne ?? option.coutTonneNet,
       coutTotalRetenu: option.coutTotal,
     };
     setResultat(chantier);
@@ -158,7 +214,9 @@ function FormulaireChantier({ onAjoutChantier }) {
       <div className="formulaire">
         <h2>CHOIX DE LA CENTRALE</h2>
         <p className="info-centrale">
-          📍 <strong>{form.nomChantier}</strong> — {form.tonnage}t de {formules.find(f => f.id === form.typeEnrobe)?.nom}
+          📍 <strong>{form.nomChantier}</strong> — {form.tonnage}t
+          {form.typeChantier === "enrobes" && ` de ${formules.find(f => f.id === form.typeEnrobe)?.nom}`}
+          {form.typeChantier === "fraisat" && " de fraisat à évacuer"}
         </p>
 
         <div className="comparatif-liste">
@@ -170,8 +228,17 @@ function FormulaireChantier({ onAjoutChantier }) {
             const prixCamion = nuit ? typeCamion?.prix_colas_nuit : typeCamion?.prix_colas_jour;
             const prixLocatier = nuit ? typeCamion?.prix_locatier_nuit : typeCamion?.prix_locatier_jour;
             const coutCamions = (nbColas * (prixCamion ?? 0)) + (nbLocatiers * (prixLocatier ?? 0));
-            const coutTotal = option.detail.coutMatiere + coutCamions;
-            const prixTonne = Math.round(coutTotal / parseFloat(form.tonnage));
+
+            // Calcul coût selon type chantier
+            const revenuFraisat = form.typeChantier === "fraisat"
+              ? (parseFloat(form.tonnage) * Math.abs(option.prixRachatTonne ?? 0))
+              : 0;
+            const coutTotal = form.typeChantier === "fraisat"
+              ? coutCamions - revenuFraisat
+              : (option.detail?.coutMatiere ?? 0) + coutCamions;
+            const prixTonne = form.typeChantier === "fraisat"
+              ? option.coutTonneNet
+              : Math.round(coutTotal / parseFloat(form.tonnage));
 
             return (
               <div key={option.centraleId} className="comparatif-card">
@@ -185,11 +252,17 @@ function FormulaireChantier({ onAjoutChantier }) {
                   <div className="comparatif-prix-tonne">{prixTonne}€/t</div>
                 </div>
 
-                {/*Détail formule */}
+                {/*Détail formule / fraisat */}
                 <div className="comparatif-formule">
-                  {option.numero && <span className="comparatif-numero">{option.numero}</span>}
-                  {option.formuleNom}
-                  <span className="comparatif-prix-matiere"> · {option.detail.prixTonneMatiere}€/t matière</span>
+                  {form.typeChantier === "fraisat" ? (
+                    <span>Rachat fraisat : <strong>{option.prixRachatTonne}€/t</strong></span>
+                  ) : (
+                    <>
+                      {option.numero && <span className="comparatif-numero">{option.numero}</span>}
+                      {option.formuleNom}
+                      <span className="comparatif-prix-matiere"> · {option.detail?.prixTonneMatiere}€/t matière</span>
+                    </>
+                  )}
                 </div>
 
                 {/*Détail camions */}
@@ -216,9 +289,19 @@ function FormulaireChantier({ onAjoutChantier }) {
 
                 {/*Détail des coûts */}
                 <div className="comparatif-detail">
-                  <div>Matière : <strong>{option.detail.coutMatiere.toLocaleString("fr-FR")}€</strong></div>
-                  <div>Transport : <strong>{coutCamions.toLocaleString("fr-FR")}€</strong></div>
-                  <div>Total : <strong>{coutTotal.toLocaleString("fr-FR")}€</strong></div>
+                  {form.typeChantier === "fraisat" ? (
+                    <>
+                      <div>Transport : <strong>{coutCamions.toLocaleString("fr-FR")}€</strong></div>
+                      <div>Rachat fraisat : <strong>− {revenuFraisat.toLocaleString("fr-FR")}€</strong></div>
+                      <div>Total net : <strong>{coutTotal.toLocaleString("fr-FR")}€</strong></div>
+                    </>
+                  ) : (
+                    <>
+                      <div>Matière : <strong>{(option.detail?.coutMatiere ?? 0).toLocaleString("fr-FR")}€</strong></div>
+                      <div>Transport : <strong>{coutCamions.toLocaleString("fr-FR")}€</strong></div>
+                      <div>Total : <strong>{coutTotal.toLocaleString("fr-FR")}€</strong></div>
+                    </>
+                  )}
                 </div>
 
                 {/*Bouton choisir */}
@@ -256,7 +339,28 @@ function FormulaireChantier({ onAjoutChantier }) {
               <p>💰 Prix retenu : <strong>{resultat.prixTonneRetenu}€/t</strong> — Total : <strong>{resultat.coutTotalRetenu?.toLocaleString("fr-FR")}€</strong></p>
             </>
           )}
-          {resultat.typeChantier !== "enrobes" && (
+          {resultat.typeChantier === "fraisat" && (
+            <>
+              <p>🏭 Centrale fraisat : <strong>{centrales.find(c => c.id === resultat.centrale)?.nom}</strong></p>
+              <p>📦 Fraisat évacué : <strong>{resultat.tonnage}t</strong></p>
+              <p>💰 Coût net retenu : <strong>{resultat.coutTotalRetenu?.toLocaleString("fr-FR")}€</strong></p>
+            </>
+          )}
+          {resultat.typeChantier === "beton" && (
+            <>
+              <p>🏭 Centrale béton : <strong>{centrales.find(c => c.id === resultat.centrale)?.nom}</strong></p>
+              <p>📦 Volume : <strong>{resultat.volumeM3}m³</strong> — <strong>{resultat.tonnage}t</strong></p>
+            </>
+          )}
+          {resultat.typeChantier === "terrassement" && (
+            <>
+              <p>🏭 Centrale décharge : <strong>{centrales.find(c => c.id === resultat.centrale)?.nom}</strong></p>
+              <p>🟤 Type déblai : <strong>{typesDeblais.find(t => t.id === resultat.typeDeblai)?.label}</strong></p>
+              <p>📦 Tonnage : <strong>{resultat.tonnage}t</strong></p>
+            </>
+          )}
+          {resultat.typeChantier !== "enrobes" && resultat.typeChantier !== "fraisat" &&
+           resultat.typeChantier !== "beton" && resultat.typeChantier !== "terrassement" && (
             <p>📦 Tonnage : <strong>{resultat.tonnage}t</strong></p>
           )}
           <p>🚛 Camions : <strong>{resultat.typeCamion}</strong></p>
@@ -273,10 +377,13 @@ function FormulaireChantier({ onAjoutChantier }) {
             coordonnees: "",
             lat: "", lng: "", zoneId: "",
             centrale: "", centraleImposee: false,
-            typeEnrobe: "", tonnage: "",
+            typeEnrobe: "", typeDeblai: "", tonnage: "",
             heureDebut: "", heureFin: "",
             typeCamion: "8x4",
             typeTrajet: "urbain",
+            rotationsIllimitees: false,
+            nbCamionsImpose: "",
+            nbCamionsImposeActif: false,
           });
           setZoneDetectee(null);
           setResultat(null);
@@ -310,7 +417,11 @@ function FormulaireChantier({ onAjoutChantier }) {
         {!form.typeChantier && (
           <p className="info-centrale">Sélectionnez un type de chantier pour continuer</p>
         )}
-        {form.typeChantier && form.typeChantier !== "enrobes" && (
+        {form.typeChantier && 
+         form.typeChantier !== "enrobes" && 
+         form.typeChantier !== "fraisat" && 
+         form.typeChantier !== "terrassement" && 
+         form.typeChantier !== "beton" && (
           <p className="info-centrale">⚠️ Ce type de chantier est en cours de développement — seul le calcul de base sera effectué</p>
         )}
       </div>
@@ -503,25 +614,147 @@ function FormulaireChantier({ onAjoutChantier }) {
             </div>
           )}
 
-          {/*─── SECTION COMMUNE TOUS TYPES (tonnage + horaires si pas enrobés) ─ */}
-          {form.typeChantier !== "enrobes" && (
+          {/*─── SECTION SPÉCIFIQUE FRAISAT ─────────────────────────────────── */}
+          {form.typeChantier === "fraisat" && (
             <div className="form-section">
-              <h3>Besoin</h3>
+              <h3>Rabotage — Évacuation fraisat</h3>
 
               <div className="form-row">
-                <label>Tonnage nécessaire (t) * </label>
-                <input type="number" name="tonnage" value={form.tonnage} onChange={handleChange} placeholder="Ex: 80" min="1" />
+                <label>Tonnage de fraisat à évacuer (t) *</label>
+                <input type="number" name="tonnage" value={form.tonnage} onChange={handleChange} placeholder="Ex: 150" min="1" />
               </div>
 
               <div className="form-row">
-                <label>Heure de début </label>
+                <label>Heure de début rabotage *</label>
                 <input type="time" name="heureDebut" value={form.heureDebut} onChange={handleChange} />
               </div>
 
               <div className="form-row">
-                <label>Heure de fin </label>
+                <label>Heure de fin *</label>
                 <input type="time" name="heureFin" value={form.heureFin} onChange={handleChange} />
               </div>
+
+              <div className="form-row">
+                <label>Contrainte centrale fraisat</label>
+                <div className="toggle-group">
+                  <button
+                    type="button"
+                    className={form.centraleImposee ? "toggle-btn actif" : "toggle-btn"}
+                    onClick={() => setForm({ ...form, centraleImposee: true })}
+                  >
+                    🔒 Centrale imposée
+                  </button>
+                  <button
+                    type="button"
+                    className={!form.centraleImposee ? "toggle-btn actif" : "toggle-btn"}
+                    onClick={() => setForm({ ...form, centraleImposee: false })}
+                  >
+                    💡 Centrale suggérée
+                  </button>
+                </div>
+              </div>
+
+              {form.centraleImposee && (
+                <div className="form-row">
+                  <label>Centrale fraisat *</label>
+                  <select name="centrale" value={form.centrale} onChange={handleChange}>
+                    <option value="">-- Sélectionner --</option>
+                    {centrales
+                      .filter(c => c.deblais_acceptes?.includes("fraisat"))
+                      .map(c => (
+                        <option key={c.id} value={c.id}>{c.nom} — {c.localisation}</option>
+                      ))
+                    }
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/*─── SECTION SPÉCIFIQUE BÉTON ────────────────────────────────────── */}
+          {form.typeChantier === "beton" && (
+            <div className="form-section">
+              <h3>Apport de béton sec</h3>
+
+              <div className="form-row">
+                <label>Volume / Cubage nécessaire (m³) *</label>
+                <input type="number" name="tonnage" value={form.tonnage} onChange={handleChange} placeholder="Ex: 30" min="1" />
+                {form.tonnage && (
+                  <div className="info-centrale">
+                    ⚖️ Équivalent : <strong>{Math.round(parseFloat(form.tonnage) * 2.5 * 10) / 10}t</strong> (densité béton = 2.5 t/m³)
+                  </div>
+                )}
+              </div>
+
+              <div className="form-row">
+                <label>Heure de début *</label>
+                <input type="time" name="heureDebut" value={form.heureDebut} onChange={handleChange} />
+              </div>
+
+              <div className="form-row">
+                <label>Heure de fin *</label>
+                <input type="time" name="heureFin" value={form.heureFin} onChange={handleChange} />
+              </div>
+
+              <div className="form-row">
+                <label>Centrale béton *</label>
+                <select name="centrale" value={form.centrale} onChange={handleChange}>
+                  <option value="">-- Sélectionner --</option>
+                  {centrales
+                    .filter(c => c.materiaux_disponibles?.includes("beton_bordures"))
+                    .map(c => (
+                      <option key={c.id} value={c.id}>{c.nom} — {c.localisation}</option>
+                    ))
+                  }
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/*─── SECTION SPÉCIFIQUE TERRASSEMENT ─────────────────────────────── */}
+          {form.typeChantier === "terrassement" && (
+            <div className="form-section">
+              <h3>Terrassement / Évacuation déblais</h3>
+
+              <div className="form-row">
+                <label>Type de déblai *</label>
+                <select name="typeDeblai" value={form.typeDeblai} onChange={handleChange}>
+                  <option value="">-- Sélectionner --</option>
+                  {typesDeblais.map(t => (
+                    <option key={t.id} value={t.id}>{t.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-row">
+                <label>Tonnage nécessaire (t) *</label>
+                <input type="number" name="tonnage" value={form.tonnage} onChange={handleChange} placeholder="Ex: 200" min="1" />
+              </div>
+
+              <div className="form-row">
+                <label>Heure de début *</label>
+                <input type="time" name="heureDebut" value={form.heureDebut} onChange={handleChange} />
+              </div>
+
+              <div className="form-row">
+                <label>Heure de fin *</label>
+                <input type="time" name="heureFin" value={form.heureFin} onChange={handleChange} />
+              </div>
+
+              {form.typeDeblai && (
+                <div className="form-row">
+                  <label>Centrale de décharge *</label>
+                  <select name="centrale" value={form.centrale} onChange={handleChange}>
+                    <option value="">-- Sélectionner --</option>
+                    {centrales
+                      .filter(c => c.deblais_acceptes?.includes(form.typeDeblai))
+                      .map(c => (
+                        <option key={c.id} value={c.id}>{c.nom} — {c.localisation}</option>
+                      ))
+                    }
+                  </select>
+                </div>
+              )}
             </div>
           )}
 
@@ -536,10 +769,77 @@ function FormulaireChantier({ onAjoutChantier }) {
               </select>
             </div>
 
+            {/* Toggle rotations — visible pour enrobés, fraisat, béton et terrassement */}
+            {(form.typeChantier === "enrobes" || form.typeChantier === "fraisat" ||
+              form.typeChantier === "beton" || form.typeChantier === "terrassement") && (
+              <div className="form-row">
+                <label>Rotations par camion</label>
+                <div className="toggle-group">
+                  <button
+                    type="button"
+                    className={!form.rotationsIllimitees ? "toggle-btn actif" : "toggle-btn"}
+                    onClick={() => setForm({ ...form, rotationsIllimitees: false })}
+                  >
+                    📊 Standard (max {form.typeChantier === "enrobes" || form.typeChantier === "fraisat" ? "3" : "4"})
+                  </button>
+                  <button
+                    type="button"
+                    className={form.rotationsIllimitees ? "toggle-btn actif" : "toggle-btn"}
+                    onClick={() => setForm({ ...form, rotationsIllimitees: true })}
+                  >
+                    🔓 Illimité
+                  </button>
+                </div>
+                {!form.rotationsIllimitees && (
+                  <p className="info-centrale">
+                    Maximum {form.typeChantier === "enrobes" || form.typeChantier === "fraisat" ? "3" : "4"} rotations/camion — sauf si centrale à moins de 15 min
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Nombre de camions imposé par le CdT */}
+<div className="form-row">
+  <label>Nombre de camions</label>
+  <div className="toggle-group">
+    <button
+      type="button"
+      className={!form.nbCamionsImposeActif ? "toggle-btn actif" : "toggle-btn"}
+      onClick={() => setForm({ ...form, nbCamionsImposeActif: false, nbCamionsImpose: "" })}
+    >
+      🤖 Calculé automatiquement
+    </button>
+    <button
+      type="button"
+      className={form.nbCamionsImposeActif ? "toggle-btn actif" : "toggle-btn"}
+      onClick={() => setForm({ ...form, nbCamionsImposeActif: true })}
+    >
+      🔒 Imposé
+    </button>
+  </div>
+
+  {form.nbCamionsImposeActif && (
+    <input
+      type="number"
+      name="nbCamionsImpose"
+      value={form.nbCamionsImpose}
+      onChange={handleChange}
+      placeholder="Ex: 2"
+      min="1"
+      style={{ marginTop: "0.5rem" }}
+    />
+  )}
+</div>
+
             {form.tonnage && (
               <div className="info-calcul">
                 🚛 Rotations nécessaires : <strong>
-                  {Math.ceil(parseFloat(form.tonnage) / (camions.find(t => t.id === form.typeCamion)?.tonnage_utile ?? 1))}
+                  {Math.ceil(
+                    (form.typeChantier === "beton" 
+                      ? parseFloat(form.tonnage) * 2.5 
+                      : parseFloat(form.tonnage)
+                    ) / (camions.find(t => t.id === form.typeCamion)?.tonnage_utile ?? 1)
+                  )}
                 </strong> au total
                 — l'algorithme calculera le nombre de camions optimal
               </div>
@@ -547,7 +847,9 @@ function FormulaireChantier({ onAjoutChantier }) {
           </div>
 
           <button className="btn-valider" onClick={handleValider}>
-            {form.typeChantier === "enrobes" ? "➡️ Voir les options de centrale" : "✅ Valider le besoin"}
+            {form.typeChantier === "enrobes" || form.typeChantier === "fraisat"
+              ? "➡️ Voir les options de centrale"
+              : "✅ Valider le besoin"}
           </button>
         </>
       )}

@@ -354,6 +354,11 @@ function CarteChantier({ chantier, estOuvert, onClic }) {
                 <div className="journal-etape-resultat">→ {calc.nbCamions} camion(s) × {calc.rotationsParCamion} rotations</div>
                 <div style={{ fontSize: "0.82rem", color: "#90EE90", marginTop: "0.4rem" }}>
                   ✅ {calc.nbCamions * calc.rotationsParCamion * calc.capacite}t capacité (objectif {chantier.tonnage}t)
+                  {!calc.chantierRealisableEnJour && (
+                    <div style={{ fontSize: "0.82rem", color: "#FF6B6B", marginTop: "0.4rem" }}>
+                      ⚠️ Tonnage non atteignable en une journée avec {calc.nbCamions} camion(s) — {calc.nbJoursNecessaires} jour(s) nécessaires
+                    </div>
+                  )}
                 </div>
                 {calc.dernierCamionStatut && (
                   <div style={{ fontSize: "0.82rem", color: "#FFD700", marginTop: "0.3rem" }}>

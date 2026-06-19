@@ -26,6 +26,12 @@ function formatDate(annee, mois, jour) {
   return `${annee}-${String(mois + 1).padStart(2, "0")}-${String(jour).padStart(2, "0")}`;
 }
 
+// ─── UTILITAIRE HEURE ────────────────────────────────────────────────────────
+// Retourne l'heure de référence d'une mission (compatible enrobés et rabotage)
+function heureRef(m) {
+  return m.depart_centrale ?? m.debut_chargement ?? "00h00";
+}
+
 // ─── COMPOSANT PRINCIPAL ─────────────────────────────────────────────────────
 function PlanningCamions({ chantiers }) {
   const today = new Date();
@@ -97,13 +103,12 @@ function PlanningCamions({ chantiers }) {
       >
         <span className="cal-num">{j}</span>
         {aDesChantiers && (
-          // Après — calcule le nb de camions pour cette date
-        <span className="cal-badge">
+          <span className="cal-badge">
             {(() => {
-                const r = optimiser(chantierParDate[dateStr] ?? []);
-                return `${r.totalCamions} camion${r.totalCamions > 1 ? "s" : ""}`;
+              const r = optimiser(chantierParDate[dateStr] ?? []);
+              return `${r.totalCamions} camion${r.totalCamions > 1 ? "s" : ""}`;
             })()}
-        </span>
+          </span>
         )}
       </div>
     );
@@ -136,75 +141,70 @@ function PlanningCamions({ chantiers }) {
       {/* Planning camions du jour sélectionné */}
       {dateSelectionnee && planningParCamion.length > 0 && (
         <div className="planning-jour">
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
             <h3 className="planning-jour-titre">
-                📅 {new Date(dateSelectionnee + "T12:00:00").toLocaleDateString("fr-FR", {
+              📅 {new Date(dateSelectionnee + "T12:00:00").toLocaleDateString("fr-FR", {
                 weekday: "long", day: "numeric", month: "long", year: "numeric"
-                })}
+              })}
             </h3>
             <div style={{ fontSize: "0.85rem", color: "var(--colas-gris)" }}>
-                {camionsColas.length} Colas · {camionsLocatiers.length} locatier{camionsLocatiers.length > 1 ? "s" : ""}
+              {camionsColas.length} Colas · {camionsLocatiers.length} locatier{camionsLocatiers.length > 1 ? "s" : ""}
             </div>
-            </div>
+          </div>
 
-            {/* Deux colonnes jour / nuit */}
-            <div className="planning-colonnes">
+          {/* Deux colonnes jour / nuit */}
+          <div className="planning-colonnes">
 
             {/* Colonne JOUR */}
             <div className="planning-colonne">
-                <div className="planning-colonne-titre">☀️ Camions de jour</div>
-                {planningParCamion.filter(c => {
-                // Camion de jour si au moins une mission de jour
-                return c.missions.some(m => {
-                    const h = parseInt(m.depart_centrale.split("h")[0]);
-                    return h >= 6 && h < 20;
-                });
-                }).length === 0
+              <div className="planning-colonne-titre">☀️ Camions de jour</div>
+              {planningParCamion.filter(c => c.missions.some(m => {
+                const h = parseInt(heureRef(m).split("h")[0]);
+                return h >= 6 && h < 20;
+              })).length === 0
                 ? <p className="planning-vide">Aucun camion de jour</p>
                 : planningParCamion
                     .filter(c => c.missions.some(m => {
-                        const h = parseInt(m.depart_centrale.split("h")[0]);
-                        return h >= 6 && h < 20;
+                      const h = parseInt(heureRef(m).split("h")[0]);
+                      return h >= 6 && h < 20;
                     }))
                     .map(c => (
-                        <CarteCamion
+                      <CarteCamion
                         key={c.camionId}
                         camion={c}
                         estOuvert={camionOuvert === c.camionId}
                         onClic={() => setCamionOuvert(camionOuvert === c.camionId ? null : c.camionId)}
-                        />
+                      />
                     ))
-                }
+              }
             </div>
 
             {/* Colonne NUIT */}
             <div className="planning-colonne">
-                <div className="planning-colonne-titre">🌙 Camions de nuit</div>
-                {planningParCamion.filter(c => {
-                return c.missions.some(m => {
-                    const h = parseInt(m.depart_centrale.split("h")[0]);
-                    return h >= 20 || h < 6;
-                });
-                }).length === 0
+              <div className="planning-colonne-titre">🌙 Camions de nuit</div>
+              {planningParCamion.filter(c => c.missions.some(m => {
+                const h = parseInt(heureRef(m).split("h")[0]);
+                return h >= 20 || h < 6;
+              })).length === 0
                 ? <p className="planning-vide">Aucun camion de nuit</p>
                 : planningParCamion
                     .filter(c => c.missions.some(m => {
-                        const h = parseInt(m.depart_centrale.split("h")[0]);
-                        return h >= 20 || h < 6;
+                      const h = parseInt(heureRef(m).split("h")[0]);
+                      return h >= 20 || h < 6;
                     }))
                     .map(c => (
-                        <CarteCamion
+                      <CarteCamion
                         key={c.camionId}
                         camion={c}
                         estOuvert={camionOuvert === c.camionId}
                         onClic={() => setCamionOuvert(camionOuvert === c.camionId ? null : c.camionId)}
-                        />
+                      />
                     ))
-                }
+              }
             </div>
-            </div>
+          </div>
         </div>
-        )}
+      )}
     </div>
   );
 }
@@ -238,54 +238,58 @@ function CarteCamion({ camion, estOuvert, onClic }) {
         <div className="planning-carte-detail">
           <div className="detail-section">
             {camion.missions.map((m, i) => {
-                const centrale = centrales.find(c => c.id === m.centraleId);
+              const centrale = centrales.find(c => c.id === m.centraleId);
 
-            // Détection passage minuit
-            const toMin = h => {
+              // Détection passage minuit
+              const toMin = h => {
+                if (!h) return 0;
                 const [hh, mm] = h.replace("h", ":").split(":").map(Number);
                 return hh * 60 + mm;
-            };
-            const passageMinuit = i > 0 && (() => {
-                const prevMin = toMin(camion.missions[i-1].depart_centrale);
-                const currMin = toMin(m.depart_centrale);
+              };
+              const passageMinuit = i > 0 && (() => {
+                const prevMin = toMin(heureRef(camion.missions[i-1]));
+                const currMin = toMin(heureRef(m));
                 return prevMin > currMin && (prevMin - currMin) > 60;
-            })();
+              })();
 
-            return (
+              return (
                 <React.Fragment key={i}>
-                {/* Séparateur passage minuit */}
-                {passageMinuit && (
+                  {/* Séparateur passage minuit */}
+                  {passageMinuit && (
                     <div style={{
-                        fontSize: "0.75rem",
-                        color: "var(--colas-jaune)",
-                        fontWeight: 600,
-                        padding: "4px 0",
-                        textAlign: "center",
-                        borderTop: "1px dashed var(--colas-jaune)"
+                      fontSize: "0.75rem",
+                      color: "var(--colas-jaune)",
+                      fontWeight: 600,
+                      padding: "4px 0",
+                      textAlign: "center",
+                      borderTop: "1px dashed var(--colas-jaune)"
                     }}>
-                        ── passage minuit ──
+                      ── passage minuit ──
                     </div>
-                )}
+                  )}
 
-                {/* Rotation */}
-                <div style={{
+                  {/* Rotation */}
+                  <div style={{
                     padding: "0.6rem 0",
                     borderBottom: "1px solid #f0f0f0",
                     fontSize: "0.82rem"
-                }}>
+                  }}>
+
                     {/* Numéro rotation + chantier */}
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                        <strong>Rotation {m.rotation}</strong>
-                        <span style={{ color: "var(--colas-gris)" }}>📍 {m.chantier}</span>
+                      <strong>Rotation {m.rotation}</strong>
+                      <span style={{ color: "var(--colas-gris)" }}>📍 {m.chantier}</span>
                     </div>
 
                     {/* Centrale */}
                     <div style={{ color: "var(--colas-gris)", marginBottom: "4px" }}>
-                        🏭 {centrale?.nom ?? m.centraleId}
+                      🏭 {centrale?.nom ?? m.centraleId}
                     </div>
 
-                    {/* Timeline */}
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                    {/* Timeline — adaptée selon type (enrobés ou rabotage) */}
+                    {m.depart_centrale ? (
+                      // Timeline enrobés : centrale → chantier → centrale
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
                         <span className="time-chip">{m.depart_centrale}</span>
                         <span style={{ opacity: 0.4 }}>→</span>
                         <span style={{ fontSize: "0.75rem", opacity: 0.6 }}>chargement</span>
@@ -295,10 +299,24 @@ function CarteCamion({ camion, estOuvert, onClic }) {
                         <span style={{ fontSize: "0.75rem", opacity: 0.6 }}>chantier</span>
                         <span style={{ opacity: 0.4 }}>→</span>
                         <span className="time-chip">{m.retour_centrale}</span>
-                        </div>
-                    </div>
-                    </React.Fragment>
-                );  
+                      </div>
+                    ) : (
+                      // Timeline rabotage : chantier → centrale → chantier
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                        <span className="time-chip">{m.debut_chargement}</span>
+                        <span style={{ opacity: 0.4 }}>→</span>
+                        <span style={{ fontSize: "0.75rem", opacity: 0.6 }}>chargement fraisat</span>
+                        <span style={{ opacity: 0.4 }}>→</span>
+                        <span className="time-chip">{m.arrivee_centrale}</span>
+                        <span style={{ opacity: 0.4 }}>→</span>
+                        <span style={{ fontSize: "0.75rem", opacity: 0.6 }}>centrale</span>
+                        <span style={{ opacity: 0.4 }}>→</span>
+                        <span className="time-chip">{m.retour_chantier}</span>
+                      </div>
+                    )}
+                  </div>
+                </React.Fragment>
+              );
             })}
           </div>
         </div>

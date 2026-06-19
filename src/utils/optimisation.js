@@ -9,11 +9,16 @@ import centrales from "../data/centrales.json";
 import { calculerRotationsEnrobes, genererPlanningCamionEnrobes, comparerCentrales } from "./calculs/calculsEnrobes";
 // Import de la flotte camions Colas AM
 import flotteCamions from "../data/flotte_camions_colasAM.json";
+//
+import { calculerRotationsRabotage, genererPlanningCamionRabotage, comparerCentralesFraisat } from "./calculs/calculsRabotage";
+import { calculerRotationsTerrassement, genererPlanningCamionTerrassement } from "./calculs/calculsTerrassement";
+import { calculerRotationsBeton, genererPlanningCamionBeton } from "./calculs/calculsBeton";
 
 // ─── RE-EXPORTS ──────────────────────────────────────────────────────────────
 // Pour compatibilité avec les imports existants dans FormulaireChantier et RecapJournalier
 export { comparerCentrales } from "./calculs/calculsEnrobes";
 export { trouverZone }       from "./calculs/calculsCommuns";
+export { comparerCentralesFraisat } from "./calculs/calculsRabotage";
 
 // ─── ROUTER DE CALCUL ────────────────────────────────────────────────────────
 // Selon le type de chantier, appelle le bon module de calcul
@@ -22,10 +27,15 @@ function calculerBesoin(chantier) {
   switch (chantier.typeChantier) {
     case "enrobes":
       return calculerRotationsEnrobes(chantier);
+    case "fraisat":
+      return calculerRotationsRabotage(chantier);
+      case "terrassement":
+        return calculerRotationsTerrassement(chantier);
+      case "beton":
+        return calculerRotationsBeton(chantier);
     // À venir :
     // case "beton":        return calculerRotationsBeton(chantier);
     // case "terrassement": return calculerRotationsTerrassement(chantier);
-    // case "fraisat":      return calculerRotationsFraisat(chantier);
     // case "multi_flux":   return calculerRotationsMultiFlux(chantier);
     default:
       // Par défaut → enrobés (compatibilité avec les chantiers saisis sans typeChantier)
@@ -39,9 +49,14 @@ function genererPlanningCamion(camion, chantier, calc, decalage = 0) {
   switch (chantier.typeChantier) {
     case "enrobes":
       return genererPlanningCamionEnrobes(camion, chantier, calc, decalage);
+    case "fraisat":
+      return genererPlanningCamionRabotage(camion, chantier, calc, decalage);
+    case "terrassement":
+      return genererPlanningCamionTerrassement(camion, chantier, calc, decalage);
+    case "beton":
+      return genererPlanningCamionBeton(camion, chantier, calc, decalage);
     // À venir :
-    // case "beton":        return genererPlanningCamionBeton(...)
-    // case "terrassement": return genererPlanningCamionTerrassement(...)
+    // case "multi-flux":        
     default:
       return genererPlanningCamionEnrobes(camion, chantier, calc, decalage);
   }
@@ -321,15 +336,18 @@ export function extrairePlanningParCamion(plannings) {
   return Object.values(parCamion).map(c => ({
     ...c,
     missions: c.missions.sort((a, b) => {
-      const toMin = h => {
-        const [hh, mm] = h.replace("h", ":").split(":").map(Number);
-        return hh * 60 + mm;
-      };
-      const mA = toMin(a.depart_centrale);
-      const mB = toMin(b.depart_centrale);
-      // Gestion passage minuit : si écart > 12h, inverser
-      if (Math.abs(mA - mB) > 720) return mA > mB ? -1 : 1;
-      return mA - mB;
-    }),
+  const toMin = h => {
+    if (!h) return 0;
+    const [hh, mm] = h.replace("h", ":").split(":").map(Number);
+    return hh * 60 + mm;
+  };
+  // Pour rabotage, l'heure de référence est debut_chargement
+  const heureA = a.depart_centrale ?? a.debut_chargement ?? "00h00";
+  const heureB = b.depart_centrale ?? b.debut_chargement ?? "00h00";
+  const mA = toMin(heureA);
+  const mB = toMin(heureB);
+  if (Math.abs(mA - mB) > 720) return mA > mB ? -1 : 1;
+  return mA - mB;
+}),
   }));
 }

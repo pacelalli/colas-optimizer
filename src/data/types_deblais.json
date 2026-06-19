@@ -1,0 +1,7 @@
+[
+  { "id": "fraisat", "label": "Fraisat (enrobé raboté)" },
+  { "id": "croutes_enrobe", "label": "Croûtes d'enrobé" },
+  { "id": "fraisat_hap_recyclable_froid", "label": "Fraisat HAP recyclable froid" },
+  { "id": "beton_pierre", "label": "Béton / Pierre" },
+  { "id": "terre_non_vegetale_non_pollue", "label": "Terres non végétales non polluées" }
+]

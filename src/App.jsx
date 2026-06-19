@@ -7,13 +7,21 @@ import Carte from "./components/Carte";
 import FormulaireChantier from "./components/FormulaireChantier";
 import RecapJournalier from "./components/RecapJournalier";
 import PlanningCamions from "./components/PlanningCamions";
+import chantiersTest from "./data/chantiers_test.json";
 
 function App() {
   const [onglet, setOnglet] = useState("accueil");
   const [chantiers, setChantiers] = useState([]);
+  const [afficherScenarios, setAfficherScenarios] = useState(false);
 
   const ajouterChantier = (chantier) => {
     setChantiers((prev) => [...prev, chantier]);
+  };
+
+  const chargerScenario = (scenario) => {
+    setChantiers(scenario.chantiers);
+    setAfficherScenarios(false);
+    setOnglet("recap");
   };
 
   return (
@@ -51,7 +59,59 @@ function App() {
         >
           Carte
         </button>
+        <button
+          className={afficherScenarios ? "actif" : ""}
+          onClick={() => setAfficherScenarios(!afficherScenarios)}
+        >
+          🧪 Tests
+        </button>
       </nav>
+
+      {/* Menu scénarios de test */}
+      {afficherScenarios && (
+        <div style={{
+          background: "var(--colas-noir)",
+          padding: "1rem",
+          display: "flex",
+          gap: "0.75rem",
+          flexWrap: "wrap",
+          justifyContent: "center"
+        }}>
+          {chantiersTest.map(scenario => (
+            <button
+              key={scenario.id}
+              onClick={() => chargerScenario(scenario)}
+              style={{
+                background: "var(--colas-jaune)",
+                color: "var(--colas-noir)",
+                border: "none",
+                borderRadius: "6px",
+                padding: "0.5rem 1rem",
+                cursor: "pointer",
+                fontWeight: 600,
+                fontSize: "0.85rem"
+              }}
+            >
+              {scenario.nom}
+            </button>
+          ))}
+          <button
+            onClick={() => { setChantiers([]); setAfficherScenarios(false); }}
+            style={{
+              background: "#E30613",
+              color: "white",
+              border: "none",
+              borderRadius: "6px",
+              padding: "0.5rem 1rem",
+              cursor: "pointer",
+              fontWeight: 600,
+              fontSize: "0.85rem"
+            }}
+          >
+            🗑️ Vider
+          </button>
+        </div>
+      )}
 
       <main className="contenu">
         {onglet === "accueil" && (
