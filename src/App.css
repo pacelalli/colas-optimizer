@@ -642,3 +642,38 @@
   padding-bottom: 0.5rem;
   border-bottom: 1px solid rgba(255,255,255,0.1);
 }
+
+/* ─── LABELS CARTE (tooltips permanents) ─────────────────────────────────── */
+
+/* Label agence — fond jaune Colas */
+.label-agence {
+  background: var(--colas-jaune, #FFD200) !important;
+  color: #1a1a1a !important;
+  border: none !important;
+  border-radius: 4px !important;
+  font-weight: 700 !important;
+  font-size: 0.72rem !important;
+  padding: 2px 6px !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3) !important;
+  white-space: nowrap !important;
+}
+/* Flèche du tooltip agence */
+.label-agence::before {
+  border-top-color: var(--colas-jaune, #FFD200) !important;
+}
+
+/* Label centrale — fond blanc discret */
+.label-centrale {
+  background: rgba(255,255,255,0.92) !important;
+  color: #333 !important;
+  border: 1px solid #ccc !important;
+  border-radius: 4px !important;
+  font-weight: 600 !important;
+  font-size: 0.68rem !important;
+  padding: 1px 5px !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
+  white-space: nowrap !important;
+}
+.label-centrale::before {
+  border-top-color: rgba(255,255,255,0.92) !important;
+}
