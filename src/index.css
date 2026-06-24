@@ -1,111 +1,78 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   COLAS — Optimiseur de transport
+   index.css · Fondation : polices, couleurs, reset, typographie de base
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Montserrat:wght@600;700;800;900&display=swap');
+
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  /* ─── Couleurs de marque Colas ─── */
+  --colas-jaune:        #FFDD00;
+  --colas-jaune-fonce:  #E8C500;
+  --colas-jaune-clair:  #FFF6CC;
+  --colas-noir:         #161616;
+  --colas-noir-2:       #232323;
+  --colas-blanc:        #FFFFFF;
+  --colas-gris:         #6B6B6B;
+  --colas-gris-2:       #9A9A9A;
+  --colas-gris-clair:   #F4F4F2;
+  --colas-bordure:      #E4E4E1;
+  --colas-rouge:        #E30613;
+  --colas-vert:         #2E7D32;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  /* ─── Typographie ─── */
+  --police-titre: 'Montserrat', system-ui, 'Segoe UI', sans-serif;
+  --police-corps: 'Barlow', system-ui, 'Segoe UI', Roboto, sans-serif;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
+  /* ─── Ombres & rayons ─── */
+  --ombre-carte: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --ombre-survol: 0 6px 18px rgba(0,0,0,0.10);
+  --rayon: 8px;
+
+  color-scheme: light;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
+  text-rendering: optimizeLegibility;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
+/* ─── Reset léger ─── */
+* { box-sizing: border-box; }
 
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
-}
+html, body { margin: 0; padding: 0; }
 
 body {
-  margin: 0;
+  font-family: var(--police-corps);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--colas-noir);
+  background: var(--colas-gris-clair);
 }
 
+/* #root pleine largeur (avant : 1126px centré + bordures latérales → cassait tout) */
 #root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-}
-
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
-}
-
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
+  width: 100%;
+  min-height: 100vh;
   margin: 0;
+  text-align: left;
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+/* ─── Titres ─── */
+h1, h2, h3, h4 {
+  font-family: var(--police-titre);
+  color: var(--colas-noir);
+  margin: 0;
+  line-height: 1.15;
 }
+h1 { font-weight: 800; font-size: 1.6rem; letter-spacing: -0.01em; }
+h2 { font-weight: 800; font-size: 1.5rem; letter-spacing: -0.005em; }
+h3 { font-weight: 700; font-size: 1.02rem; }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
-}
+p { margin: 0; }
+a { color: inherit; }
+
+input, select, textarea, button { font-family: var(--police-corps); font-size: 0.95rem; }
+button { cursor: pointer; }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: #cfcfcf; border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: #b5b5b5; }

@@ -8,12 +8,20 @@ import FormulaireChantier from "./components/FormulaireChantier";
 import RecapJournalier from "./components/RecapJournalier";
 import PlanningCamions from "./components/PlanningCamions";
 import chantiersTest from "./data/chantiers_test.json";
+import logoColas from "./assets/colas-logo.svg";
 
 function App() {
   const [onglet, setOnglet] = useState("accueil");
   const [chantiers, setChantiers] = useState([]);
   const [afficherScenarios, setAfficherScenarios] = useState(false);
   const [chantierAModifier, setChantierAModifier] = useState(null);
+  const [optimisationsAppliquees, setOptimisationsAppliquees] = useState([]);
+
+  // Active/désactive une optimisation (clé = "idA->idB")
+  const toggleOptimisation = (cle) =>
+    setOptimisationsAppliquees(prev =>
+      prev.includes(cle) ? prev.filter(k => k !== cle) : [...prev, cle]
+    );
 
   const ajouterChantier = (chantier) => {
     setChantiers((prev) => [...prev, chantier]);
@@ -34,7 +42,9 @@ function App() {
   return (
     <div className="app">
       <header className="header">
-        <div className="header-logo">COLAS</div>
+        <div className="header-logo">
+          <img src={logoColas} className="logo-colas" alt="COLAS" />
+        </div>
         <div className="header-text">
           <h1>Optimiseur de transport</h1>
           <p>Agence des Alpes-Maritimes -  Carros & Pégomas </p>
@@ -143,14 +153,16 @@ function App() {
         {onglet === "recap" && (
           <RecapJournalier
             chantiers={chantiers}
+            optimisationsAppliquees={optimisationsAppliquees}
+            onToggleOptimisation={toggleOptimisation}
             onModifier={(chantier) => {
               setChantierAModifier(chantier);
               setOnglet("saisie");
             }}
           />
         )}
-        {onglet === "planning" && <PlanningCamions chantiers={chantiers} />}
-        {onglet === "carte" && <Carte chantiers={chantiers} />}
+        {onglet === "planning" && <PlanningCamions chantiers={chantiers} optimisationsAppliquees={optimisationsAppliquees} />}
+        {onglet === "carte" && <Carte chantiers={chantiers} optimisationsAppliquees={optimisationsAppliquees} />}
       </main>
     </div>
   );

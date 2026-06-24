@@ -3,7 +3,8 @@
 // Réorganise les données de optimiser() par camion via extrairePlanningParCamion()
 
 import { useState } from "react";
-import { optimiser, extrairePlanningParCamion } from "../utils/optimisation";
+import { optimiser, extrairePlanningParCamion, optimiserJournee } from "../utils/optimisation";
+import { proposerComblement } from "../utils/scoreCompatibilite";
 import centrales from "../data/centrales.json";
 import camions from "../data/type_camions.json";
 import React from "react";
@@ -33,7 +34,7 @@ function heureRef(m) {
 }
 
 // ─── COMPOSANT PRINCIPAL ─────────────────────────────────────────────────────
-function PlanningCamions({ chantiers }) {
+function PlanningCamions({ chantiers, optimisationsAppliquees = [] }) {
   const today = new Date();
   const [moisAffiche, setMoisAffiche] = useState(today.getMonth());
   const [anneeAffichee, setAnneeAffichee] = useState(today.getFullYear());
@@ -56,6 +57,26 @@ function PlanningCamions({ chantiers }) {
   // Séparation Colas / Locatiers
   const camionsColas = planningParCamion.filter(c => c.proprietaire === "Colas");
   const camionsLocatiers = planningParCamion.filter(c => c.proprietaire === "Locatier");
+
+  // ── ÉTAPE 2b : optimisations appliquées propagées ici ─────────────────────
+  const cleRenfort = (rf) => `${rf.chantierAId}->${rf.chantierBId}`;
+  const renfortsJour = chantiersJour.length >= 2 ? optimiserJournee(chantiersJour).renforts : [];
+  const renfortsAppliques = renfortsJour.filter(rf => optimisationsAppliquees.includes(cleRenfort(rf)));
+  const premierDepart = (c) => Math.min(...c.missions.map(m => m.departCentraleMin ?? Infinity));
+  const economiseIds = new Set();   // camions marginaux de B "économisés" par le renfort
+  const commandes = [];             // comblements à commander (renforts partiels)
+  for (const rf of renfortsAppliques) {
+    const surB = planningParCamion.filter(c => c.proprietaire === "Locatier" && c.missions.some(m => m.chantier === rf.chantierB));
+    if (surB.length) {
+      const marginal = surB.reduce((a, b) => premierDepart(b) > premierDepart(a) ? b : a, surB[0]);
+      economiseIds.add(marginal.camionId);
+    }
+    if (!rf.retireCamionEntier) {
+      const chB = chantiersJour.find(c => c.id === rf.chantierBId);
+      const comb = chB ? proposerComblement(chB) : null;
+      if (comb && comb.option) commandes.push({ ...comb.option, chantierB: rf.chantierB, typeRetire: comb.typeRetire, bilanNet: comb.bilanNet });
+    }
+  }
 
   // Navigation mois
   const moisPrecedent = () => {
@@ -149,8 +170,27 @@ function PlanningCamions({ chantiers }) {
             </h3>
             <div style={{ fontSize: "0.85rem", color: "var(--colas-gris)" }}>
               {camionsColas.length} Colas · {camionsLocatiers.length} locatier{camionsLocatiers.length > 1 ? "s" : ""}
+              {economiseIds.size > 0 && <span style={{ color: "#2E7D32", fontWeight: 700 }}> · ⚡ −{economiseIds.size} optimisé{economiseIds.size > 1 ? "s" : ""}</span>}
             </div>
           </div>
+
+          {renfortsAppliques.length > 0 && (
+            <div className="planning-optims">
+              {renfortsAppliques.map((rf, i) => {
+                const cmd = commandes.find(c => c.chantierB === rf.chantierB);
+                return (
+                  <div key={i} className="planning-optim-ligne">
+                    ⚡ <strong>{rf.chantierA}</strong> renforce <strong>{rf.chantierB}</strong> dès {rf.heureDispoB} (1 rotation, {rf.tonnageRenfort} t)
+                    {rf.retireCamionEntier
+                      ? <span> · <strong>−1 camion</strong></span>
+                      : cmd
+                        ? <span> · retire 1 {cmd.typeRetire} → commande <strong>{cmd.nb} × {cmd.type}</strong> (bilan {cmd.bilanNet > 0 ? "+" : ""}{cmd.bilanNet} €)</span>
+                        : null}
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           {/* Deux colonnes jour / nuit */}
           <div className="planning-colonnes">
@@ -174,6 +214,7 @@ function PlanningCamions({ chantiers }) {
                         camion={c}
                         estOuvert={camionOuvert === c.camionId}
                         onClic={() => setCamionOuvert(camionOuvert === c.camionId ? null : c.camionId)}
+                        economise={economiseIds.has(c.camionId)}
                       />
                     ))
               }
@@ -198,6 +239,7 @@ function PlanningCamions({ chantiers }) {
                         camion={c}
                         estOuvert={camionOuvert === c.camionId}
                         onClic={() => setCamionOuvert(camionOuvert === c.camionId ? null : c.camionId)}
+                        economise={economiseIds.has(c.camionId)}
                       />
                     ))
               }
@@ -210,15 +252,16 @@ function PlanningCamions({ chantiers }) {
 }
 
 // ─── CARTE CAMION ─────────────────────────────────────────────────────────────
-function CarteCamion({ camion, estOuvert, onClic }) {
+function CarteCamion({ camion, estOuvert, onClic, economise = false }) {
   const typeCamion = camions.find(t => t.id === camion.type);
 
   // Tonnage total livré par ce camion (somme des tonnages de chaque rotation)
   const tonnageTotal = camion.missions.reduce((acc, m) => acc + (m.tonnage_rotation ?? 0), 0);
 
   return (
-    <div className={`planning-carte ${estOuvert ? "ouverte" : ""}`}
-         style={{ borderLeftColor: camion.proprietaire === "Colas" ? "var(--colas-jaune)" : "#E30613" }}>
+    <div className={`planning-carte ${estOuvert ? "ouverte" : ""} ${economise ? "economise" : ""}`}
+         style={{ borderLeftColor: economise ? "#2E7D32" : (camion.proprietaire === "Colas" ? "var(--colas-jaune)" : "#E30613") }}>
+      {economise && <div className="planning-carte-badge-eco">⚡ Économisé par renfort</div>}
 
       {/* En-tête cliquable */}
       <div className="planning-carte-header" onClick={onClic}>

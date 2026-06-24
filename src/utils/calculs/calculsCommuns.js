@@ -101,3 +101,22 @@ export function getTempsTrajet(centraleId, zoneId, isNuit = false, type = null, 
 
   return Math.round(tempsBase * coeffTrafic * coeffCamion);
 }
+
+// Détail du temps de trajet (pour le journal de calcul) : base + coefficients
+export function detailTempsTrajet(centraleId, zoneId, isNuit = false, type = null, typeTrajet = "urbain") {
+  const tempsBase = distances[centraleId]?.[zoneId];
+  if (tempsBase === null || tempsBase === undefined) return null;
+  const coeffTrafic = isNuit ? distances.meta.coeff_nuit : distances.meta.coeff_jour;
+  const libelle = typeTrajet === "montagne" ? "montagne" : typeTrajet === "autoroute" ? "autoroute" : "urbain";
+  const coeffCamion = typeTrajet === "montagne"  ? (type?.coeff_vitesse_montagne ?? 1.25)
+                    : typeTrajet === "autoroute" ? (type?.coeff_vitesse_autoroute ?? 1.15)
+                    : (type?.coeff_vitesse_urbain ?? 1.20);
+  return {
+    tempsBase,
+    coeffTrafic,
+    coeffCamion,
+    libelleTrajet: libelle,
+    isNuit,
+    tempsTrajet: Math.round(tempsBase * coeffTrafic * coeffCamion),
+  };
+}

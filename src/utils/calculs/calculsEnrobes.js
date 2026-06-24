@@ -1,7 +1,10 @@
 // ─── CALCULS ENROBÉS ─────────────────────────────────────────────────────────
-// Cycle : centrale → chargement+bâchage → chantier → déchargement → centrale
+// Cycle : centrale → chargement + bâchage → chantier → déchargement → centrale
 // Libre après : déchargement sur chantier (dernière rotation)
+
+// Imports de fonctions
 import { haversine, heureEnMinutes, minutesEnHeure, getTypeCamion, getTempsTrajet } from "./calculsCommuns";
+//Import des data 
 import centrales from "../../data/centrales.json";
 import formules from "../../data/formules_enrobes.json";
 
@@ -137,8 +140,10 @@ export function genererPlanningCamionEnrobes(camion, chantier, calc, decalage = 
 
   // Les nbCamionsRotationsMax premiers (decalage 0,1,...) font entierInf+1 rotations
   // Les autres font entierInf rotations
-  const entierInf = Math.floor(calc.rotationsExactes);
-  const rotationsCeCamion = decalage < calc.nbCamionsRotationsMax ? entierInf + 1 : entierInf;
+  // Chaque camion vise rotationsParCamion ; le compteur partagé arrête l'ensemble
+  // pile au tonnage requis (rotationsTotales). Garantit la cohérence avec Planning
+  // chantiers ET l'atteinte du tonnage (ex. RD135 : 5×3=15 ; RD6007 : 3+3+2=8).
+  const rotationsCeCamion = calc.rotationsParCamion;
 
   let dernierFinDechargement = cursor; // pour libreA = fin déchargement dernière rotation
 
@@ -170,6 +175,7 @@ export function genererPlanningCamionEnrobes(camion, chantier, calc, decalage = 
       tonnage_rotation:   calc.capacite,
       tonnage_cumule:     (i + 1) * calc.capacite,
       tonnage_cumule_global: tonnageCumuleGlobal,
+      departCentraleMin:  departCentrale,
       depart_centrale:    minutesEnHeure(departCentrale),
       fin_chargement:     minutesEnHeure(finChargement),
       arrivee_chantier:   minutesEnHeure(arriveeChantier),

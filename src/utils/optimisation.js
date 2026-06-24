@@ -3,7 +3,7 @@
 // Indépendant du type de chantier (enrobés, béton, terrassement...)
 // Reçoit des objets "besoin" normalisés produits par chaque module calculs*
 // Import des fonctions communes
-import { heureEnMinutes, haversine, getTypeCamion } from "./calculs/calculsCommuns";
+import { heureEnMinutes, minutesEnHeure, haversine, getTypeCamion } from "./calculs/calculsCommuns";
 import centrales from "../data/centrales.json";
 // Import des fonctions spécifiques enrobés
 import { calculerRotationsEnrobes, genererPlanningCamionEnrobes, comparerCentrales } from "./calculs/calculsEnrobes";
@@ -14,7 +14,7 @@ import { calculerRotationsRabotage, genererPlanningCamionRabotage, comparerCentr
 import { calculerRotationsTerrassement, genererPlanningCamionTerrassement } from "./calculs/calculsTerrassement";
 import { calculerRotationsBeton, genererPlanningCamionBeton } from "./calculs/calculsBeton";
 // ← NOUVEAU : matériau
-import { calculerRotationsMateriau, genererPlanningCamionMateriau } from "./calculs/calculsMateriaux";
+import { calculerRotationsMateriau, genererPlanningCamionMateriau } from "./calculs/calculsMateriaux.js";
 
 // ─── RE-EXPORTS ──────────────────────────────────────────────────────────────
 // Pour compatibilité avec les imports existants dans FormulaireChantier et RecapJournalier
@@ -152,6 +152,30 @@ export function optimiser(chantiers) {
     }
   }
 
+  // ── CUMUL CHANTIER CHRONOLOGIQUE ──────────────────────────────────────────
+  // On ordonne toutes les rotations d'un même chantier par heure de chargement
+  // (tous camions confondus) et on cumule dans cet ordre : 1ère rotation du 1er
+  // camion = 29 t, 1ère du 2e camion = 58 t, … puis les 2e rotations, etc.
+  const tonnageParChantier = {};
+  for (const c of sorted) tonnageParChantier[c.nomChantier] = parseFloat(c.tonnage) || Infinity;
+  const rotationsParChantier = {};
+  for (const pl of planningsFinal) {
+    for (const r of (pl.rotations || [])) {
+      if (r.departCentraleMin == null) continue; // type sans heure brute → on laisse tel quel
+      if (!rotationsParChantier[pl.chantier]) rotationsParChantier[pl.chantier] = [];
+      rotationsParChantier[pl.chantier].push(r);
+    }
+  }
+  for (const nom of Object.keys(rotationsParChantier)) {
+    const rots = rotationsParChantier[nom].sort((a, b) => a.departCentraleMin - b.departCentraleMin);
+    const cible = tonnageParChantier[nom] ?? Infinity;
+    let cumul = 0;
+    for (const r of rots) {
+      cumul += r.tonnage_rotation;
+      r.tonnage_cumule_global = Math.min(cumul, cible);
+    }
+  }
+
   return {
     plannings:     planningsFinal,
     locatiers:     locatiersNecessaires,
@@ -188,11 +212,13 @@ export function optimiserJournee(chantiersJournee) {
     return {
       chantier: c,
       calc,
+      // Le camion qui se libère le plus tôt = celui qui fait le MOINS de rotations.
+      // (rotationsTotales n'est pas toujours un multiple de nbCamions → le dernier en fait moins)
       heureFinDernierCamion: calc
-        ? calc.heureDepartCentrale + calc.rotationsParCamion * calc.tempsCycle
+        ? calc.heureDepartCentrale + Math.max(0, calc.rotationsTotales - calc.rotationsParCamion * (calc.nbCamions - 1)) * calc.tempsCycle
         : null,
       tempsLibreApresRotations: calc
-        ? calc.heureFinMin - (calc.heureDepartCentrale + calc.rotationsParCamion * calc.tempsCycle)
+        ? calc.heureFinMin - (calc.heureDepartCentrale + Math.max(0, calc.rotationsTotales - calc.rotationsParCamion * (calc.nbCamions - 1)) * calc.tempsCycle)
         : 0,
       nbCamionsFinal: calc?.nbCamions ?? 0,
       renforts: [],
@@ -240,28 +266,40 @@ export function optimiserJournee(chantiersJournee) {
         }
       }
 
-      const tempsDispoRenfort = itemA.tempsLibreApresRotations - tempsRepositionnement;
-      if (tempsDispoRenfort < itemB.calc.tempsCycle) continue;
+      // Le camion arrive CHARGÉ sur B : le chargement + le trajet aller sont déjà comptés
+      // dans le repositionnement. La 1ère rotation ne coûte donc QUE le déchargement ;
+      // les rotations suivantes (il repart à vide) coûtent un cycle complet.
+      const tChargB = (type?.temps_chargement_enrobe ?? 6) + (type?.temps_bachage_enrobe ?? 6);
+      const tDechargB = Math.max(0, itemB.calc.tempsCycle - tChargB - 2 * itemB.calc.tempsTrajet);
+      const tempsApresArrivee = itemA.tempsLibreApresRotations - tempsRepositionnement;
+      if (tempsApresArrivee < tDechargB) continue; // pas même le temps de livrer le 1er chargement
 
-      const rotationsRenfort = Math.floor(tempsDispoRenfort / itemB.calc.tempsCycle);
+      const rotationsRenfort = 1 + Math.floor((tempsApresArrivee - tDechargB) / itemB.calc.tempsCycle);
       const tonnageRenfort = rotationsRenfort * itemB.calc.capacite;
-      const tonnageEconomise = itemB.calc.rotationsParCamion * itemB.calc.capacite;
-      const renfortUtile = tonnageRenfort >= tonnageEconomise * 0.8;
 
-      if (!renfortUtile) continue;
+      // Un renfort RETIRE un camion entier sur B s'il couvre au moins le camion "marginal"
+      // de B (le moins chargé). Sinon il est PARTIEL : il faudra combler le reste (4x2/8x4).
+      const rotMarginalB = Math.max(1, itemB.calc.rotationsTotales - itemB.calc.rotationsParCamion * (itemB.calc.nbCamions - 1));
+      const retireCamionEntier = rotationsRenfort >= rotMarginalB;
 
       renforts.push({
         chantierA:         itemA.chantier.nomChantier,
         chantierB:         itemB.chantier.nomChantier,
+        chantierAId:       itemA.chantier.id,
+        chantierBId:       itemB.chantier.id,
         distanceKm:        Math.round(distKm * 10) / 10,
         tempsTrajetAB,
         tempsRepositionnement,
         rotationsRenfort,
         tonnageRenfort:    Math.round(tonnageRenfort),
-        camionsEconomises: 1,
+        rotMarginalB,
+        retireCamionEntier,
+        heureFinRotationsA: minutesEnHeure(itemA.heureFinDernierCamion),
+        heureDispoB:        minutesEnHeure(itemA.heureFinDernierCamion + tempsRepositionnement),
+        camionsEconomises: retireCamionEntier ? 1 : 0,
       });
 
-      itemB.nbCamionsFinal = Math.max(1, itemB.nbCamionsFinal - 1);
+      if (retireCamionEntier) itemB.nbCamionsFinal = Math.max(1, itemB.nbCamionsFinal - 1);
       itemB.renforts.push({
         depuis: itemA.chantier.nomChantier,
         rotations: rotationsRenfort,

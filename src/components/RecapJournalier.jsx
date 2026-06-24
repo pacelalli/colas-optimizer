@@ -1,6 +1,8 @@
 // ─── RÉCAPITULATIF & PLANNING ────────────────────────────────────────────────
 import { useState } from "react";
 import { optimiser, calculerRotations, optimiserJournee } from "../utils/optimisation";
+import { analyserCompatibilites, proposerComblement } from "../utils/scoreCompatibilite";
+import { detailTempsTrajet } from "../utils/calculs/calculsCommuns";
 import centrales from "../data/centrales.json";
 import camions from "../data/type_camions.json";
 import formules from "../data/formules_enrobes.json";
@@ -65,7 +67,7 @@ function detailCycle(typeChantier, typeCamion, tempsTrajet) {
 }
 
 // ─── COMPOSANT PRINCIPAL ─────────────────────────────────────────────────────
-function RecapPlanning({ chantiers, onModifier }) {
+function RecapPlanning({ chantiers, onModifier, optimisationsAppliquees = [], onToggleOptimisation }) {
   const today = new Date();
   const [moisAffiche, setMoisAffiche] = useState(today.getMonth());
   const [anneeAffichee, setAnneeAffichee] = useState(today.getFullYear());
@@ -83,6 +85,14 @@ function RecapPlanning({ chantiers, onModifier }) {
   const chantiersJourSelectionne = dateSelectionnee ? (chantierParDate[dateSelectionnee] ?? []) : [];
   const chantiersJour = chantiersJourSelectionne.filter(c => !c.chantierNuit);
   const chantiersNuit = chantiersJourSelectionne.filter(c => c.chantierNuit);
+  const compat = analyserCompatibilites(chantiersJourSelectionne);
+
+  // Clé stable d'un renfort + compteurs basés sur les optimisations APPLIQUÉES
+  const cleRenfort = (rf) => `${rf.chantierAId}->${rf.chantierBId}`;
+  const renfortsDuJour = resultatOptimisation?.renforts ?? [];
+  const economieAppliquee = renfortsDuJour.filter(rf => optimisationsAppliquees.includes(cleRenfort(rf))).length;
+  const totalAvant = resultatOptimisation?.totalCamionsAvant ?? 0;
+  const totalApres = totalAvant - economieAppliquee;
 
   const moisPrecedent = () => {
     if (moisAffiche === 0) { setMoisAffiche(11); setAnneeAffichee(a => a - 1); }
@@ -203,26 +213,86 @@ function RecapPlanning({ chantiers, onModifier }) {
               <div className="optimisation-header">
                 <span>⚡ Optimisation réalisée</span>
                 <span className="optimisation-economie">
-                  {resultatOptimisation.economie > 0
-                    ? `✅ ${resultatOptimisation.economie} camion(s) économisé(s)`
-                    : "Aucune optimisation possible sur cette journée"}
+                  {economieAppliquee > 0
+                    ? `✅ ${economieAppliquee} camion(s) économisé(s)`
+                    : "Aucune optimisation appliquée pour le moment"}
                 </span>
               </div>
               <div className="optimisation-chiffres">
-                <div>Avant : <strong>{resultatOptimisation.totalCamionsAvant} camions</strong></div>
-                <div>Après : <strong>{resultatOptimisation.totalCamionsApres} camions</strong></div>
+                <div>Avant : <strong>{totalAvant} camions</strong></div>
+                <div>Après : <strong>{totalApres} camions</strong></div>
               </div>
-              {resultatOptimisation.renforts.length > 0 && (
+              {compat.toutes.length > 0 && (
                 <div className="optimisation-renforts">
-                  <div className="optimisation-renforts-titre">Renforts identifiés :</div>
-                  {resultatOptimisation.renforts.map((r, i) => (
-                    <div key={i} className="optimisation-renfort-ligne">
-                      🚛 <strong>{r.chantierA}</strong> → renforce <strong>{r.chantierB}</strong>
-                      <span style={{ opacity: 0.7 }}>
-                        · {r.distanceKm} km · {r.rotationsRenfort} rotation(s) · {r.tonnageRenfort}t
-                      </span>
-                    </div>
-                  ))}
+                  <div className="optimisation-renforts-titre">Relations entre chantiers</div>
+                  <div className="relations">
+                    {compat.pertinentes.length === 0 && (
+                      <p className="planning-vide">Aucune paire compatible (score ≥ 2) sur cette journée.</p>
+                    )}
+                    {compat.pertinentes.map((r, i) => {
+                      const col = r.score === 4 ? "#2E7D32" : r.score === 3 ? "#C99700" : r.score === 2 ? "#EA7317" : "#9A9A9A";
+                      const rf = resultatOptimisation.renforts.find(x =>
+                        (x.chantierA === r.a.nomChantier && x.chantierB === r.b.nomChantier) ||
+                        (x.chantierA === r.b.nomChantier && x.chantierB === r.a.nomChantier)
+                      );
+                      const cle = rf ? cleRenfort(rf) : null;
+                      const estAppliquee = cle && optimisationsAppliquees.includes(cle);
+                      const chantierBObj = rf ? chantiersJourSelectionne.find(c => c.id === rf.chantierBId) : null;
+                      const comblement = (rf && !rf.retireCamionEntier && chantierBObj) ? proposerComblement(chantierBObj) : null;
+                      return (
+                        <div key={i} className={"rel-card" + (estAppliquee ? " appliquee" : "")} style={{ "--score-col": col }}>
+                          <div className="rel-top">
+                            <span className="rel-paire">{r.source.nomChantier} → {r.cible.nomChantier}</span>
+                            <span className="rel-badge" style={{ background: col }}>{r.score}/4</span>
+                          </div>
+                          <div className="rel-reco" style={{ color: col }}>{r.recommandation}</div>
+                          <div className="rel-criteres">
+                            <span className={"crit " + (r.criteres.camion ? "ok" : "ko")}>{r.criteres.camion ? "✓" : "✗"} Type camion</span>
+                            <span className={"crit " + (r.criteres.proximite ? "ok" : "ko")}>{r.criteres.proximite ? "✓" : "✗"} Proximité</span>
+                            <span className={"crit " + (r.criteres.materiaux ? "ok" : "ko")}>{r.criteres.materiaux ? "✓" : "✗"} Matériaux</span>
+                            <span className={"crit " + (r.criteres.centrale ? "ok" : "ko")}>{r.criteres.centrale ? "✓" : "✗"} Centrale</span>
+                          </div>
+                          {rf && (
+                            <div className="rel-action">
+                              🚛 1er camion de <strong>{rf.chantierA}</strong> libre à <strong>{rf.heureFinRotationsA}</strong> → repositionnement ({rf.tempsRepositionnement} min) → renforce <strong>{rf.chantierB}</strong> dès <strong>{rf.heureDispoB}</strong> (1 rotation, {rf.tonnageRenfort} t)
+                              {rf.retireCamionEntier ? (
+                                <div style={{ marginTop: "0.3rem", opacity: 0.85 }}>
+                                  {rf.distanceKm} km · le renfort couvre le camion marginal → <strong>−1 camion</strong>
+                                </div>
+                              ) : comblement && comblement.option ? (
+                                <div style={{ marginTop: "0.4rem" }}>
+                                  Pour retirer un {comblement.typeRetire} de {rf.chantierB} : <strong>{comblement.tonnageMarginal} t</strong> à couvrir → renfort {comblement.renfort} t → reste <strong>{comblement.trou} t</strong>.
+                                  <div style={{ marginTop: "0.25rem" }}>
+                                    Comblement le moins cher : <strong>{comblement.option.nb} × {comblement.option.type}</strong> ({comblement.option.cout} €)
+                                  </div>
+                                  <div className="rel-bilan" style={{ color: comblement.bilanNet < 0 ? "#2E7D32" : "#CB2B3E" }}>
+                                    Bilan : −1 {comblement.typeRetire} (−{comblement.prixRetire} €) + {comblement.option.nb} × {comblement.option.type} (+{comblement.option.cout} €) = <strong>{comblement.bilanNet > 0 ? "+" : ""}{comblement.bilanNet} €</strong> {comblement.bilanNet < 0 ? "✅ gain" : "→ non recommandé"}
+                                  </div>
+                                </div>
+                              ) : comblement ? (
+                                <div className="rel-bilan" style={{ marginTop: "0.4rem", color: "#2E7D32" }}>
+                                  Le renfort couvre tout le camion marginal → <strong>−1 {comblement.typeRetire}</strong> ({comblement.bilanNet} €) ✅
+                                </div>
+                              ) : null}
+                            </div>
+                          )}
+                          {rf && (
+                            <button
+                              className={"rel-appliquer" + (estAppliquee ? " active" : "")}
+                              onClick={() => onToggleOptimisation && onToggleOptimisation(cle)}
+                            >
+                              {rf.retireCamionEntier
+                                ? (estAppliquee ? "✓ Optimisation appliquée — annuler" : "Appliquer cette optimisation")
+                                : (estAppliquee ? "✓ Proposition retenue — annuler" : (comblement && comblement.option ? `Proposer l'optimisation — commander ${comblement.option.nb} × ${comblement.option.type}` : "Proposer l'optimisation"))}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {compat.faibles.length > 0 && (
+                    <div className="rel-faibles">+ {compat.faibles.length} autre(s) paire(s) peu pertinente(s) (0-1/4)</div>
+                  )}
                 </div>
               )}
             </div>
@@ -238,6 +308,7 @@ function CarteChantier({ chantier, estOuvert, onClic, onModifier }) {
   const calc = calculerRotations(chantier);
   const centrale = centrales.find(c => c.id === chantier.centrale);
   const typeCamion = camions.find(t => t.id === chantier.typeCamion);
+  const dt = calc ? detailTempsTrajet(calc.centraleId, chantier.zoneId, chantier.chantierNuit, typeCamion, chantier.typeTrajet ?? "urbain") : null;
   const formule = formules.find(f => f.id === chantier.typeEnrobe);
 
   // Tonnage affiché : pour le béton on montre le tonnage converti, sinon le tonnage brut
@@ -309,7 +380,14 @@ function CarteChantier({ chantier, estOuvert, onClic, onModifier }) {
               <div className="journal-etape">
                 <div className="journal-etape-titre">2. Temps de trajet</div>
                 <div className="journal-etape-ligne">Type de trajet : {chantier.typeTrajet ?? "urbain"}</div>
-                <div className="journal-etape-resultat">→ {calc.tempsTrajet} min par trajet</div>
+                {dt && (
+                  <>
+                    <div className="journal-etape-ligne">Trajet de base ({centrale?.nom || calc.centraleId} → {chantier.zoneId}) : {dt.tempsBase} min</div>
+                    <div className="journal-etape-ligne">× coefficient {dt.isNuit ? "nuit" : "jour"} : ×{dt.coeffTrafic}</div>
+                    <div className="journal-etape-ligne">× coefficient {dt.libelleTrajet} ({typeCamion?.label ?? chantier.typeCamion}) : ×{dt.coeffCamion}</div>
+                  </>
+                )}
+                <div className="journal-etape-resultat">→ {dt ? `${dt.tempsBase} × ${dt.coeffTrafic} × ${dt.coeffCamion} = ` : ""}{calc.tempsTrajet} min par trajet</div>
               </div>
 
               {/* Étape 3 — Temps de cycle (libellés selon le type) */}
